@@ -1,25 +1,9 @@
 # Documentation
 
-## Guides
+- [Development](development.md): run, build, test and sign the app.
+- [Account transfer](account-transfer.md): export/import behavior and archive format.
+- [Architecture](architecture.md): source layout and frontend/native boundaries.
 
-- [Development](development.md): run, build and package CodexDeck.
-- [Platforms](platforms.md): platform status and recorded validation.
-- [Account transfer](account-transfer.md): encrypted archive format and compatibility.
+[Contributing](../CONTRIBUTING.md) · [Security](../SECURITY.md) · [Privacy](../PRIVACY.md)
 
-## Implementation
-
-- [Architecture and command contract](architecture.md): frontend/native commands and data.
-- [Rust backend](../src-tauri/README.md).
-- [macOS integration](../native/macos/README.md).
-
-## Review records
-
-These reports describe the state at their recorded review date; use the guides for current setup.
-
-- [Interface review](reviews/interface.md).
-- [Notification integration review](reviews/notifications.md).
-- Historical design screenshots are kept outside the public repository.
-
-## Third-party licenses
-
-- [shadcn/ui](licenses/shadcn.md). Distributable notices also ship in `public/licenses/` and beside the bundled fonts.
+Third-party notices ship with the app: [shadcn/ui](../public/licenses/shadcn-MIT.txt) and [Vazirmatn](../public/fonts/OFL.txt).

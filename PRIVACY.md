@@ -1,6 +1,9 @@
-# Privacy documentation
+# Privacy
 
-The current app is the Tauri implementation in the repository root. Its local data, account isolation, native capabilities and service boundaries are documented in the [desktop guide](docs/development.md) and [native backend guide](src-tauri/README.md). Account transfer files are described in the [transfer format](docs/account-transfer.md).
+Account labels, settings and cached quotas are saved in the app's local data directory. Sign-in credentials use the operating system's credential store; exported account archives include credentials encrypted with your chosen password.
 
+CodexDeck communicates with the installed Codex CLI for authentication and usage requests. **Start / schedule** sends a real `Reply only OK.` prompt through selected accounts and may consume quota. The current app has no diagnostic reporting or update-service integration.
 
-Private local signing material and broker caches stay under the repository's ignored `.local-data/` directory. They are not source files or distributable app assets.
+On macOS, switching the original Codex/ChatGPT account changes that app's login after system authentication and saves a recovery backup in Keychain.
+
+Treat [account exports](docs/account-transfer.md) and their passwords as sensitive. Do not attach real account data to issues.

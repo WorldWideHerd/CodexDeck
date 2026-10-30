@@ -1,39 +1,22 @@
-# CodexDeck desktop command contract
+# Architecture
 
-The current Tauri app lives in the repository root. This document records the frontend/native command boundary and data formats. Active shared macOS security code lives in `native/macos/`.
+| Path                                         | Responsibility                                       |
+| -------------------------------------------- | ---------------------------------------------------- |
+| `src/`                                       | React interface, localization and frontend tests     |
+| `src-tauri/src/backend.rs`                   | Account operations and state coordination            |
+| `src-tauri/src/rpc.rs`                       | Isolated Codex CLI processes and JSONL RPC           |
+| `src-tauri/src/storage.rs`                   | Local metadata and profile directories               |
+| `src-tauri/src/alerts.rs`, `notification.rs` | Quota transitions and native notifications           |
+| `src-tauri/src/transfer.rs`, `warmup.rs`     | Encrypted transfer and one-shot prompt scheduling    |
+| `native/macos/`                              | Swift account-switching bridge and credential broker |
+| `scripts/`                                   | Build, signing, packaging and migration tools        |
 
-## Shared interface
+## Frontend/native boundary
 
-Tauri commands accept camelCase argument keys, return camelCase JSON. All times below are UNIX seconds (not Swift reference-date timestamps).
+[bridge.ts](../src/lib/bridge.ts) defines frontend calls; [types.ts](../src/lib/types.ts) defines their data. [lib.rs](../src-tauri/src/lib.rs) registers native handlers. Keep these files aligned when changing the interface; command arguments and returned JSON use camelCase. Timestamps use Unix seconds.
 
-`get_state() -> AppState`
-`add_account({label, workspaceId?}) -> AppState`
-`update_account({id, patch}) -> AppState` (label, color, subscriptionEndsAt, alertThreshold)
-`remove_account({id}) -> AppState`
-`reorder_accounts({ids}) -> AppState`
-`save_settings({patch}) -> AppState`
-`refresh_accounts({id?}) -> AppState`
-`start_login({id}) -> LoginState`
-`cancel_login({id}) -> AppState`
-`open_login_url({id}) -> void`
-`set_pinned({pinned}) -> void`
-`choose_codex_executable() -> AppState`
-`get_platform_capabilities() -> PlatformCapabilities`
-`switch_desktop_account({id}) -> AppState`
-`restore_desktop_account() -> AppState`
-`quit_app() -> void`
+Events update state (`state-changed`), login (`login-changed`), switching (`desktop-switch-progress`) and scheduled prompts (`warmup-changed`). The frontend uses capability flags to enable platform-specific operations. User-facing errors are localized through `src/lib/presentation.ts`.
 
-Events: `state-changed` payload AppState; `login-changed` payload LoginState. Command errors must be user-safe strings with no secrets.
+Isolated accounts use separate CLI homes and the OS credential store. macOS original-account switching uses a Swift transaction and a signed XPC broker; keep bundle identifiers and signing identity stable. Archive credentials stay native to the [transfer implementation](account-transfer.md).
 
-AppState = { accounts: Account[], settings: Settings, codexExecutable: string|null, lastError: string|null }
-Account = { id: string, label: string, email: string|null, plan: string|null, workspaceId: string|null, snapshot: UsageSnapshot|null, updatedAt: number|null, color: string|null, subscriptionEndsAt: number|null, alertThreshold: number|null, status: 'idle'|'refreshing'|'signingIn'|'connected'|'needsLogin'|'failed', error: string|null }
-Settings = { language: 'fa'|'en', appearance: 'system'|'light'|'dark', refreshMinutes: number, layout: 'cards'|'list', sort: 'manual'|'fiveHour'|'weekly'|'reset', pinned: boolean }
-LoginState = { accountId: string, loginId: string|null, url: string|null, status: 'pending'|'complete'|'cancelled'|'failed', error: string|null }
-PlatformCapabilities = { platform: string, desktopSwitch: boolean, desktopRestore: boolean, reason: string|null }
-UsageSnapshot contains: rateLimits?, rateLimitsByLimitId?, rateLimitResetCredits?, accountId?. Bucket windows use usedPercent, windowDurationMins?, resetsAt?. Preserve additional buckets and reset credits.
-
-Frontend should treat capabilities as authoritative and explain unsupported features honestly. Never show simulated successful switching. Backend should implement safe platform support where verified; otherwise return an actionable unsupported reason and document what remains. Existing credentials must never be silently migrated or overwritten.
-
-## Delivery target
-
-Working buildable desktop app with shadcn components, Persian RTL/English, light/dark/system, real isolated account login and quota refresh through Codex CLI, persistent metadata, cards/list/sort/manual order/edit/remove, quota alerts where supported, tray and pinned dashboard. Platform-specific account switching, secure credential compatibility, update/diagnostics service parity must be explicitly assessed; do not claim full parity without validation.
+macOS is locally validated. Windows/Linux runtime behavior remains unverified; original-account switching is unavailable there. Notification availability depends on native readiness and OS permissions.
