@@ -1,0 +1,28 @@
+# Dependencies and generated files
+node_modules/
+dist/
+output/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+.build/
+.swiftpm/
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/generated-icons/
+
+# Private data and local configuration
+.local-data/
+.env
+.env.*
+!.env.example
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+
+# Kept outside the public application repository
+server/
+legacy/
+CodexDeck-Private/

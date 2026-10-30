@@ -1,0 +1,299 @@
+.settings-popover {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--foreground);
+}
+.settings-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(450px, calc(100dvh - 190px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.settings-section {
+  padding: 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-section h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.settings-section h3 svg,
+.settings-advanced svg {
+  height: 13px;
+  width: 13px;
+}
+.settings-choices {
+  display: flex;
+  gap: 6px;
+}
+.settings-choices button {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  height: 34px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 5px;
+  background: color-mix(in srgb, var(--foreground) 2%, transparent);
+}
+.settings-choices button svg {
+  height: 12px;
+  width: 12px;
+}
+.settings-choices button[aria-pressed="true"] {
+  background: var(--card);
+  border-color: color-mix(in srgb, var(--foreground) 23%, var(--border));
+  font-weight: 650;
+  box-shadow: 0 1px 2px #0001;
+  color: var(--foreground);
+}
+.settings-choices button:hover {
+  background: color-mix(in srgb, var(--foreground) 7%, var(--card));
+  color: var(--foreground);
+}
+.settings-choices button:active {
+  background: color-mix(in srgb, var(--foreground) 12%, var(--card));
+}
+.settings-popover p {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.settings-version {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.settings-version span {
+  color: var(--muted-foreground);
+}
+.settings-advanced {
+  font-size: 12px;
+  border-radius: 10px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+.settings-advanced summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  list-style: none;
+}
+.settings-advanced summary::-webkit-details-marker {
+  display: none;
+}
+.settings-advanced summary::after {
+  content: "+";
+  margin-inline-start: auto;
+}
+.settings-advanced[open] summary::after {
+  content: "−";
+}
+.settings-advanced > div {
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-advanced p > svg {
+  display: inline;
+  margin-inline-end: 5px;
+  vertical-align: middle;
+}
+.settings-action {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  justify-content: flex-start;
+  font-size: 12px;
+  color: var(--foreground);
+}
+.settings-quit {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.settings-quit button:hover {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
+}
+.settings-quit button:disabled {
+  color: var(--muted-foreground);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .settings-section,
+  .settings-advanced {
+    background: var(--muted);
+  }
+}
+.settings-popover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 6px;
+  margin-bottom: 12px;
+}
+.settings-popover-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.settings-popover-heading h2 svg {
+  height: 14px;
+  width: 14px;
+}
+.settings-popover-heading button {
+  height: 26px;
+  width: 26px;
+  border-radius: 50%;
+  padding: 7px;
+  background: var(--muted);
+}
+.settings-popover-heading button svg {
+  height: 10px;
+  width: 10px;
+}
+
+.account-transfer {
+  display: grid;
+  gap: 10px;
+}
+.account-transfer label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.account-transfer input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: inherit;
+  padding: 8px 10px;
+  font: inherit;
+}
+.account-transfer input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.settings-transfer-link {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding-inline: 12px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+.transfer-dialog .account-transfer {
+  gap: 16px;
+}
+.transfer-dialog .account-transfer p {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.transfer-dialog .account-transfer label,
+.transfer-dialog .settings-choices button {
+  font-size: 13px;
+}
+
+/* Flat preference groups keep the compact panel easy to scan. */
+.settings-scroll {
+  gap: 0;
+}
+.settings-section {
+  background: transparent;
+  border-radius: 0;
+  padding: 10px 4px;
+}
+.settings-section + .settings-section {
+  border-top: 1px solid var(--border);
+}
+.settings-advanced {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.settings-transfer-link {
+  margin-top: 12px;
+}
+.settings-quit {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+/* Let preferences scroll while the utility actions remain reachable. */
+.settings-popover {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 118px);
+}
+.settings-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.settings-popover-heading,
+.settings-quit {
+  flex-shrink: 0;
+}
+
+.notification-preferences-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.notification-preferences-row > button {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  gap: 6px;
+  border-radius: 8px;
+}
+.notification-preferences-row svg {
+  width: 14px;
+  height: 14px;
+}
+.settings-popover .notification-readiness {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground);
+}
+.notification-readiness-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+}
+.notification-readiness-dot[data-ready="true"] {
+  background: var(--brand, #77d9c1);
+}
+.notification-readiness-dot[data-ready="false"] {
+  background: var(--destructive);
+}
+.settings-popover .notification-result {
+  font-size: 11px;
+}

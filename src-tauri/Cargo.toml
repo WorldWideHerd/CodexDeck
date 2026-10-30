@@ -1,0 +1,45 @@
+[package]
+name = "codexdeck"
+version = "0.1.0"
+description = "Isolated Codex usage dashboard"
+license = "MIT"
+edition = "2021"
+rust-version = "1.90"
+
+[lib]
+name = "codexdeck_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+cc = "1"
+serde_json = "1"
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "rt-multi-thread", "macros"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+url = "2"
+open = "5"
+
+tempfile = "3"
+ring = "0.17"
+base64 = "0.23"
+sha2 = "0.10"
+zeroize = "1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", features = ["apple-native"] }
+
+
+[target.'cfg(target_os = "linux")'.dependencies]
+notify-rust = "4"
+keyring = { version = "3.6", features = ["linux-native-sync-persistent", "crypto-rust"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["UI_Notifications", "Data_Xml_Dom", "Foundation"] }
+keyring = { version = "3.6", features = ["windows-native"] }

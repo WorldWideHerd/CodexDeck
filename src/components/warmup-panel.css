@@ -1,0 +1,71 @@
+.warmup-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-block-end: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+.warmup-toolbar p,
+.warmup-hint {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+}
+.warmup-dialog {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.warmup-accounts,
+.warmup-timing {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.warmup-accounts {
+  max-height: 190px;
+  overflow-y: auto;
+}
+.warmup-accounts label,
+.warmup-timing label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.warmup-accounts label span {
+  overflow-wrap: anywhere;
+}
+.warmup-accounts input,
+.warmup-timing input[type="radio"] {
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.warmup-accounts legend,
+.warmup-timing legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-block-end: 10px;
+}
+.warmup-timing .warmup-date {
+  display: grid;
+}
+.warmup-results {
+  display: grid;
+  gap: 10px;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 14px;
+}
+.warmup-results > div {
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.warmup-results small {
+  color: var(--muted-foreground);
+  line-height: 1.8;
+}

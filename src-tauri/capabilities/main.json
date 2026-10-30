@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dashboard",
+  "description": "The local dashboard and menu-bar summary may listen to backend state events.",
+  "windows": ["main", "menubar"],
+  "permissions": ["core:default"]
+}

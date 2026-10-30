@@ -1,0 +1,97 @@
+import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { AccountTransfer } from "./account-transfer";
+import { SettingsPanel } from "./settings-panel";
+import { emptyState } from "@/lib/bridge";
+import type { Settings } from "@/lib/types";
+
+function render(patch: Partial<Settings> = {}) {
+  const settings = { ...emptyState.settings, ...patch };
+  const fa = settings.language === "fa";
+  return renderToStaticMarkup(
+    <SettingsPanel
+      state={{ ...emptyState, settings }}
+      caps={{
+        platform: "browser",
+        desktopSwitch: false,
+        desktopRestore: false,
+        reason: null,
+      }}
+      busy={false}
+      fa={fa}
+      t={(persian, english) => (fa ? persian : english)}
+      num={(n) => String(n)}
+      settings={async () => {}}
+      run={async () => true}
+    />,
+  );
+}
+
+function buttons(html: string) {
+  return Array.from(
+    html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g),
+  ).map(([, attributes, content]) => ({
+    attributes,
+    text: content.replace(/<[^>]*>/g, ""),
+  }));
+}
+function selected(html: string) {
+  return buttons(html)
+    .filter((button) => button.attributes.includes('aria-pressed="true"'))
+    .map((button) => button.text);
+}
+
+describe("settings panel", () => {
+  it("identifies exactly the saved language, appearance and refresh choices", () => {
+    const html = render();
+    expect(selected(html)).toEqual(["فارسی", "شمسی", "سیستم", "3"]);
+    expect(html).toContain('dir="rtl"');
+    expect(
+      buttons(html).filter((b) =>
+        b.attributes.includes('aria-pressed="false"'),
+      ),
+    ).toHaveLength(8);
+  });
+
+  it("reflects changed settings and localizes English choice labels", () => {
+    const html = render({
+      language: "en",
+      calendar: "gregory",
+      appearance: "dark",
+      refreshMinutes: 30,
+    });
+    expect(selected(html)).toEqual(["English", "Gregorian", "Dark", "30"]);
+    expect(html).toContain('dir="ltr"');
+    expect(html).toContain('aria-label="Every 30 minutes"');
+    expect(html).toContain('aria-label="App language"');
+    expect(html).toContain('aria-label="App appearance"');
+  });
+
+  it("explains unavailable services and disables native-only actions in the browser", () => {
+    const html = render({ language: "en" });
+    expect(html).toContain(
+      "The update service is not connected in this version.",
+    );
+    expect(html).toContain("No diagnostic reports or telemetry are sent.");
+    expect(html).toContain(
+      "The optional reporting service is not connected in this version.",
+    );
+    for (const label of ["Quit app", "Choose Codex CLI executable"]) {
+      const action = buttons(html).find((button) => button.text === label);
+      expect(action, label).toBeDefined();
+      expect(action!.attributes, label).toContain('disabled=""');
+    }
+    expect(html).not.toContain("Restore original desktop account");
+    expect(html).toContain("Account transfer &amp; backup");
+    expect(html).not.toContain('type="password"');
+    const transfer = renderToStaticMarkup(
+      <AccountTransfer fa={false} busy={false} run={async () => true} />,
+    );
+    for (const label of ["Export JSON", "Import JSON"]) {
+      const action = buttons(transfer).find((button) => button.text === label);
+      expect(action, label).toBeDefined();
+      expect(action!.attributes, label).toContain('disabled=""');
+    }
+    expect(html).not.toContain("You’re up to date");
+  });
+});

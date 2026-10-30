@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "resources": {
+      "generated-icons/Assets.car": "Assets.car",
+      "generated-icons/CodexDeckIcon.icns": "CodexDeckIcon.icns"
+    }
+  }
+}

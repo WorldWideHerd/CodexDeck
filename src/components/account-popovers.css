@@ -1,0 +1,453 @@
+/* Match the Swift AppActionRow, appField and appGlassBackground conventions. */
+.account .account-avatar {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.account .account-avatar:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.account .account-menu > .popup-menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.account .account-menu[data-state="open"] > .popup-menu-trigger,
+.account .account-menu > .popup-menu-trigger:hover {
+  background: var(--muted);
+}
+.account .account-menu > .account-action-popover {
+  width: 220px;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow:
+    0 12px 38px #0005,
+    0 0 0 1px #ffffff03;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  inset-inline-end: 0;
+  top: 34px;
+}
+.account-action-popover .popover-heading {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  padding: 8px 10px 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account .account-menu > .account-action-popover > button {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 450;
+  color: var(--foreground);
+}
+.account .account-menu > .account-action-popover > button svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.65;
+  color: var(--muted-foreground);
+}
+.account .account-menu > .account-action-popover > button:hover:not(:disabled) {
+  background: var(--muted);
+}
+.account .account-menu > .account-action-popover > button:disabled {
+  opacity: 0.45;
+}
+.account-action-popover .popover-divider {
+  height: 1px;
+  margin: 7px 0;
+  background: var(--border);
+}
+.account
+  .account-menu
+  > .account-action-popover
+  > .remove-connection:hover:not(:disabled),
+.account
+  .account-menu
+  > .account-action-popover
+  > .remove-connection:hover:not(:disabled)
+  svg {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
+}
+.account .gifts {
+  position: relative;
+}
+.account .gifts > summary {
+  border-radius: 8px;
+}
+.account .gifts > summary:hover {
+  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+}
+.account .gifts > .gift-popover {
+  position: absolute;
+  z-index: 45;
+  bottom: calc(100% + 10px);
+  inset-inline: 0;
+  padding: 16px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  box-shadow: 0 12px 38px #0005;
+  max-height: 320px;
+  overflow: auto;
+}
+.gift-popover h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.gift-popover h4 > span {
+  margin-inline-start: auto;
+  color: var(--primary);
+}
+.gift-popover > div {
+  padding: 10px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+}
+.gift-popover > div strong {
+  font-size: 12px;
+}
+.gift-popover p,
+.gift-popover small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.gift-popover .gift-empty {
+  color: var(--muted-foreground);
+}
+.deck-dialog[role="dialog"] {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  padding: 30px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  gap: 22px;
+  box-shadow: 0 24px 80px #0007;
+}
+.deck-dialog[role="dialog"] > div:first-child {
+  text-align: start;
+  padding-inline-end: 12px;
+}
+.deck-dialog[role="dialog"] h2 {
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.deck-dialog[role="dialog"] > div:first-child > p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: var(--muted-foreground);
+  margin-top: 6px;
+}
+.deck-dialog[role="dialog"] > .deck-dialog-close {
+  inset-inline-start: auto;
+  inset-inline-end: 12px;
+  top: 12px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--muted);
+}
+.deck-dialog .account-form {
+  gap: 20px;
+}
+.deck-dialog .account-form label,
+.deck-dialog.quick-account-dialog label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.deck-dialog .account-form input,
+.deck-dialog.quick-account-dialog input:not([type="color"]) {
+  min-height: 36px;
+  margin-top: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--foreground) 3%, var(--card));
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.deck-dialog .account-form input:focus-visible,
+.deck-dialog.quick-account-dialog input:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 0;
+  border-color: var(--ring);
+  box-shadow: none;
+}
+.deck-dialog .account-form small {
+  font-size: 10px;
+  line-height: 1.8;
+}
+.deck-dialog .account-form > button {
+  height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.subscription-date-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  text-align: start;
+  font-size: 12px;
+}
+.subscription-date-toggle:hover:not(:disabled) {
+  background: var(--muted);
+}
+.subscription-date-toggle:disabled {
+  opacity: 0.5;
+}
+.subscription-date-toggle svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.subscription-date-toggle small {
+  margin-inline-start: auto;
+}
+.subscription-date-toggle[aria-expanded="true"] .date-chevron {
+  transform: rotate(180deg);
+}
+.subscription-date-section > div:not([hidden]) {
+  padding-top: 14px;
+}
+.deck-dialog .color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 10px;
+}
+.deck-dialog .color-picker > button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  display: grid;
+  place-items: center;
+  color: white;
+}
+.deck-dialog .color-picker > button[aria-pressed="true"] {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.deck-dialog .form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 24px;
+}
+.deck-dialog .form-actions button {
+  height: 36px;
+  min-width: 70px;
+  border-radius: 8px;
+}
+.account .card-subscription-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding-block: 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.card-subscription-summary > .card-summary-trigger {
+  min-width: 0;
+}
+.card-subscription-summary .card-summary-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-subscription-summary svg {
+  flex-shrink: 0;
+}
+.card-subscription-summary .card-summary-value {
+  display: block;
+  margin: 3px 0 0;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.card-subscription-summary small {
+  display: block;
+  font-size: 11px;
+  min-height: 18px;
+}
+.card-subscription-summary
+  .soon
+  :is(.card-summary-label, .card-summary-value, small) {
+  color: var(--warning-foreground);
+}
+.card-subscription-summary
+  :is(.urgent, .expired)
+  :is(.card-summary-label, .card-summary-value, small) {
+  color: var(--destructive);
+}
+
+.account .card-summary-trigger {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 35%, var(--card));
+  color: inherit;
+  text-align: start;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  white-space: normal;
+}
+.account .card-summary-trigger:hover,
+.account .card-summary-trigger[data-state="open"] {
+  background: var(--muted);
+}
+.account .card-summary-trigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.card-summary-chevron {
+  margin-inline-start: auto;
+}
+.card-summary-trigger[data-state="open"] .card-summary-chevron {
+  transform: rotate(180deg);
+}
+
+/* Position within the card itself; scrolling never flips or shifts the panel. */
+.account .account-info-popover {
+  position: absolute;
+  top: 64px;
+  inset-inline-end: 12px;
+  width: min(300px, calc(100% - 24px));
+  max-height: min(400px, calc(100% - 80px));
+  border-radius: 12px;
+}
+.account .account-info-heading {
+  padding: 10px 12px;
+  gap: 8px;
+}
+.account .account-info-heading h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.account .account-info-heading p {
+  font-size: 11px;
+}
+.account .account-info-scroll {
+  padding: 10px;
+}
+.account .account-info-popover .account-detail-section {
+  padding: 10px;
+  border: 0;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+/* Keep focus on an open card menu without dimming the rest of the workspace. */
+.account {
+  position: relative;
+  isolation: isolate;
+}
+/* Each account isolates its layers. Raise the owner through the menu's exit
+   animation so following rows cannot paint over its floating panel. */
+.account:has(.account-action-popover, .account-info-popover) {
+  z-index: 20;
+}
+.account::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  border-radius: inherit;
+  background: #10182414;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  -webkit-backdrop-filter: blur(1.5px);
+  backdrop-filter: blur(1.5px);
+  pointer-events: none;
+}
+.account:has(
+    .account-info-popover[data-state="open"],
+    .account-menu[data-state="open"]
+  )::after {
+  opacity: 1;
+}
+.dark .account::after {
+  background: #00000038;
+}
+.account .account-menu > .account-action-popover {
+  z-index: 60;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .account::after {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Keep the panel mounted through its closing animation. */
+.account .account-info-popover {
+  transform-origin: top center;
+  --card-popup-offset: 4px;
+}
+.account .account-menu > .account-action-popover {
+  transform-origin: top right;
+  --card-popup-offset: -4px;
+}
+[dir="rtl"] .account .account-menu > .account-action-popover {
+  transform-origin: top left;
+}
+@keyframes card-popup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--card-popup-offset)) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes card-popup-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(var(--card-popup-offset)) scale(0.98);
+  }
+}
