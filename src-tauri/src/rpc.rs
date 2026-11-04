@@ -389,7 +389,6 @@ mod tests {
 #[cfg(all(test, unix))]
 mod transport_tests {
     use super::*;
-    use std::os::unix::fs::PermissionsExt;
     const FIXTURE: &str = r#"#!/usr/bin/env python3
 import json,os,sys
 assert os.path.realpath(os.environ['CODEX_HOME'])==os.path.realpath(os.getcwd())
@@ -435,17 +434,32 @@ for line in sys.stdin:
     fn fixture() -> (tempfile::TempDir, std::path::PathBuf, std::path::PathBuf) {
         let dir = tempfile::tempdir().unwrap();
         let binary = dir.path().join("synthetic-codex");
-        std::fs::write(&binary, FIXTURE).unwrap();
-        std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
         let home = dir.path().join("profile");
         std::fs::create_dir(&home).unwrap();
+        // Execute an existing interpreter, not a just-written executable. This keeps
+        // concurrent Linux fixtures independent of transient executable-file locks.
+        // Python reads the app-server fixture in the same working directory and
+        // receives the real transport arguments and isolated environment unchanged.
+        // Resolve the interpreter through Python itself: /usr/bin/python3 can be
+        // an Xcode launcher on macOS, which cannot be renamed with a symlink.
+        let interpreter = std::process::Command::new("python3")
+            .args(["-c", "import sys; print(sys.executable)"])
+            .output()
+            .expect("Python 3 is required for transport tests");
+        assert!(interpreter.status.success(), "Could not resolve the Python test interpreter");
+        let interpreter = std::path::PathBuf::from(
+            String::from_utf8(interpreter.stdout).unwrap().trim(),
+        );
+        assert!(interpreter.is_absolute());
+        std::os::unix::fs::symlink(interpreter, &binary).unwrap();
+        std::fs::write(home.join("app-server"), FIXTURE).unwrap();
         (dir, binary, home)
     }
     #[tokio::test]
     async fn original_home_reads_respect_config_without_forcing_keyring() {
         let (_dir, binary, home) = fixture();
         let original_fixture = FIXTURE.replace("assert ('cli_auth_credentials_store=\"file\"' if sys.platform==\"darwin\" else 'cli_auth_credentials_store=\"keyring\"') in sys.argv", "assert not any('cli_auth_credentials_store' in arg or 'auth_keyring_backend' in arg or 'forced_chatgpt_workspace_id' in arg for arg in sys.argv)");
-        std::fs::write(&binary, original_fixture).unwrap();
+        std::fs::write(home.join("app-server"), original_fixture).unwrap();
         let (tx, _rx) = event_channel();
         let rpc = Rpc::start_original(&binary, &home, "synthetic-original".into(), tx)
             .await

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — preview
+
+- Make the isolated local signing keychain searchable while codesign constructs its certificate chain, then restore the previous search list on success and failure.
+- Cover fresh-keychain signing, identity reuse and search-list restoration with a macOS integration test.
+- Run RPC transport fixtures through an existing Python interpreter to avoid executing newly written temporary files during concurrent Linux tests.
+
 ## 0.1.0 — release candidate
 
 - Initialize the Windows notification sender identity and allow the first enabled toast; installer/runtime verification remains required.

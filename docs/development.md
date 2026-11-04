@@ -52,3 +52,5 @@ Dependencies and generated output (`node_modules/`, `dist/`, `output/`, `src-tau
 The optional `scripts/import_swift_metadata.py` tool imports old Swift metadata into an empty destination. Run with `--help`; omit `--apply` to validate without writing. Credentials are not imported, so accounts require signing in again.
 
 After dependency changes, regenerate and review notices with `npm run licenses:generate`. This reads the complete locked Rust graph, including other platforms. For the reviewed GLib backport, install the GLib development library and run the optimized probe described in [vendor/README.md](../vendor/README.md).
+
+The macOS signing helper temporarily includes only the local signing keychain alongside the existing search list while `codesign` runs, then restores the list even if signing fails. It does not change the default keychain, trust settings or account credential ACLs. Build-tool tests exercise a fresh temporary identity so CI does not depend on a developer’s cached signing state.
