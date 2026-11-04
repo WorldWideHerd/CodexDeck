@@ -136,3 +136,25 @@ it("explains native switch authorization and recovery without exposing credentia
   expect(presentError("desktopBroker", true)).toContain("امضاشده");
   expect(presentError("desktopActive", false)).toContain("restore");
 });
+
+it("keeps Windows sound uncertainty separate from notification failure", () => {
+  const warning =
+    "Visual notifications are enabled, but sound readiness could not be verified.";
+  expect(errorCode(warning)).toBe("notificationSoundUnknown");
+  expect(presentError(warning, true)).toContain("اعلان‌ها فعال‌اند");
+  expect(presentError(warning, false)).toContain("Notifications are enabled");
+  expect(presentError(warning, false)).not.toContain("status is unknown");
+});
+
+it("shows only allowlisted Windows notification failure codes", () => {
+  for (const stage of ["Readiness", "Send"]) {
+    const marker = `notificationWindows${stage}Failed:0x80070490`;
+    expect(errorCode(marker)).toBe(`notificationWindows${stage}Failed`);
+    for (const fa of [true, false]) {
+      expect(presentError(new Error(marker), fa)).toContain("0x80070490");
+      expect(presentError(`${marker} C:\\private\\account`, fa)).not.toContain(
+        "private",
+      );
+    }
+  }
+});

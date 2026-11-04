@@ -154,16 +154,20 @@ export function SettingsPanel({
                 setNotificationResult(null);
                 try {
                   const warning = await bridge.testNotification();
-                  setNotificationReady(true);
+                  setNotificationReady(
+                    warning !== "notificationWindowsSubmittedUnverified",
+                  );
+                  const submitted = t(
+                    "اعلان به سیستم ارسال شد.",
+                    "Notification submitted to the OS.",
+                  );
                   setNotificationResult(
                     warning
-                      ? presentError(warning, fa)
-                      : t(
-                          "اعلان به سیستم ارسال شد.",
-                          "Notification submitted to the OS.",
-                        ),
+                      ? `${submitted} ${presentError(warning, fa)}`
+                      : submitted,
                   );
                 } catch (error) {
+                  setNotificationReady(false);
                   setNotificationResult(presentError(error, fa));
                 } finally {
                   setTestingNotification(false);
@@ -178,8 +182,12 @@ export function SettingsPanel({
           </div>
           <p>
             {t(
-              "هشدار هر حساب را جداگانه تنظیم کنید.",
-              "Set alerts for each account separately.",
+              caps.platform === "windows"
+                ? "اگر CodexDeck در فهرست اعلان‌های ویندوز نیست، ابتدا تست اعلان را بزنید."
+                : "هشدار هر حساب را جداگانه تنظیم کنید.",
+              caps.platform === "windows"
+                ? "If CodexDeck is missing from Windows notification settings, send a test notification first."
+                : "Set alerts for each account separately.",
             )}
           </p>
           {notificationResult && (

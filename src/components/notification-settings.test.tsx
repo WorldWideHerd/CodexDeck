@@ -16,7 +16,11 @@ it("shows notification failure inside settings and allows retry without claiming
   const test = vi
     .spyOn(bridge, "testNotification")
     .mockRejectedValueOnce("OS notification permission is denied.")
-    .mockResolvedValueOnce(null);
+    .mockResolvedValueOnce(
+      "Visual notifications are enabled, but sound readiness could not be verified.",
+    )
+    .mockResolvedValueOnce("notificationWindowsSubmittedUnverified")
+    .mockRejectedValueOnce("notificationWindowsSendFailed:0x80070490");
   const check = vi
     .spyOn(bridge, "checkNotificationReadiness")
     .mockResolvedValue(null);
@@ -26,7 +30,7 @@ it("shows notification failure inside settings and allows retry without claiming
         <SettingsPanel
           state={emptyState}
           caps={{
-            platform: "macos",
+            platform: "windows",
             desktopSwitch: false,
             desktopRestore: false,
             reason: null,
@@ -59,6 +63,9 @@ it("shows notification failure inside settings and allows retry without claiming
     expect(host.querySelector(".notification-result")?.textContent).toContain(
       "Enable CodexDeck notifications",
     );
+    expect(
+      host.querySelector(".notification-readiness")?.textContent,
+    ).toContain("Needs attention");
     expect(host.querySelector(".notification-help")).toBeNull();
     expect(host.textContent).not.toContain("Settings & help");
     expect(host.textContent).not.toContain("System notification settings");
@@ -70,6 +77,29 @@ it("shows notification failure inside settings and allows retry without claiming
     expect(host.querySelector(".notification-result")?.textContent).toContain(
       "submitted to the OS",
     );
+    expect(host.querySelector(".notification-result")?.textContent).toContain(
+      "cannot verify the sound",
+    );
+    expect(
+      host.querySelector(".notification-result")?.textContent,
+    ).not.toContain("status is unknown");
+    expect(
+      host.querySelector(".notification-readiness")?.textContent,
+    ).toContain("Enabled");
+    await act(async () => trigger.click());
+    expect(host.querySelector(".notification-result")?.textContent).toContain(
+      "submitted to the OS",
+    );
+    expect(
+      host.querySelector(".notification-readiness")?.textContent,
+    ).toContain("Needs attention");
+    await act(async () => trigger.click());
+    expect(host.querySelector(".notification-result")?.textContent).toContain(
+      "0x80070490",
+    );
+    expect(
+      host.querySelector(".notification-readiness")?.textContent,
+    ).toContain("Needs attention");
   } finally {
     await act(async () => root.unmount());
     host.remove();

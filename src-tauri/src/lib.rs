@@ -49,11 +49,8 @@ async fn test_notification(
         return Err("Unavailable".into());
     }
     let readiness = core.check_notification_readiness(true).await;
-    if !readiness.can_send() {
-        return Err(readiness
-            .message()
-            .unwrap_or("Notifications are unavailable.")
-            .into());
+    if !notification::can_test_notification(readiness, cfg!(windows)) {
+        return Err(readiness.failure());
     }
     let fa = core.state().await.settings.language == "fa";
     notification::send(
@@ -65,6 +62,16 @@ async fn test_notification(
         },
     )
     .await?;
+    if !readiness.can_send() {
+        // A successful Show acknowledges submission, not a visible banner. Recheck
+        // sender registration and keep the status unverified if it still fails.
+        let updated = core.check_notification_readiness(false).await;
+        return Ok(if updated.can_send() {
+            updated.message().map(str::to_owned)
+        } else {
+            Some("notificationWindowsSubmittedUnverified".into())
+        });
+    }
     Ok(readiness.message().map(str::to_owned))
 }
 #[tauri::command]

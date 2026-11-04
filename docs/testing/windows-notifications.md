@@ -35,3 +35,9 @@ that template rather than adding a second competing shortcut/registry owner.
 Automated Rust tests cover the readiness decision: Windows `Enabled` allows the
 first toast, and disabled settings block it. macOS builds do not compile or
 exercise the Windows API calls. A passing macOS build is not Windows validation.
+
+## First sender and status-query failures
+
+A failed Windows status query must not make the explicit **Test notification** button unusable: the test attempts a direct toast submission and then checks status again. Normal quota notifications remain blocked while readiness is unknown, and known Windows denials are never treated as permission. An accepted submission is reported as submitted, not as a guarantee that a banner appeared. If status remains unknown after submission, the app keeps **Needs attention** rather than claiming notifications are enabled.
+
+Windows cannot verify per-app sound through this API. That warning is displayed separately from an unknown notification status. Actual status-query and send failures include only a hexadecimal Windows error code, never the raw system error message. Include that code when diagnosing a missing sender. Check that a rejected test changes the app status to **Needs attention**, and that a successful test with unknown sound says **submitted** and **enabled**, without the misleading generic unknown-status message.

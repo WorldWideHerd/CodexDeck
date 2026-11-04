@@ -243,6 +243,22 @@ const messages = {
     "وضعیت اعلان‌ها مشخص نیست. در تنظیمات اعلان سیستم، CodexDeck را بررسی کنید. اگر در فهرست نیست، نسخهٔ نصب‌شده را اجرا و یک اعلان آزمایشی ارسال کنید.",
     "Notification status is unknown. Check CodexDeck in system notification settings. If it is missing, run the installed app and send a test notification.",
   ],
+  notificationSoundUnknown: [
+    "اعلان‌ها فعال‌اند؛ وضعیت صدا از داخل برنامه قابل بررسی نیست.",
+    "Notifications are enabled; the app cannot verify the sound setting.",
+  ],
+  notificationWindowsReadinessFailed: [
+    "ویندوز وضعیت اعلان CodexDeck را برنگرداند. تست اعلان را بزنید تا ارسال مستقیم بررسی شود.",
+    "Windows could not return CodexDeck notification status. Send a test notification to check submission directly.",
+  ],
+  notificationWindowsSendFailed: [
+    "ویندوز اعلان آزمایشی را نپذیرفت. کد خطا را برای بررسی ارسال کنید.",
+    "Windows did not accept the notification. Share the error code for diagnosis.",
+  ],
+  notificationWindowsSubmittedUnverified: [
+    "وضعیت اعلان هنوز قابل بررسی نیست؛ نمایش آن را در مرکز اعلان‌های ویندوز بررسی کنید.",
+    "Notification status is still unverified; check for the notification in Windows Notification Center.",
+  ],
   notificationSilent: [
     "اعلان‌ها فعال‌اند، اما صدای آن‌ها در تنظیمات سیستم خاموش است.",
     "Notifications are enabled, but sound is disabled in system settings.",
@@ -262,6 +278,11 @@ export function errorCode(error: unknown): ErrorCode {
         ? error.message
         : "";
   if (Object.hasOwn(messages, text)) return text as ErrorCode;
+  const windowsFailure =
+    /^(notificationWindows(?:Readiness|Send)Failed):0x[0-9a-f]{8}$/i.exec(text);
+  if (windowsFailure && Object.hasOwn(messages, windowsFailure[1]))
+    return windowsFailure[1] as ErrorCode;
+
   const s = text.toLowerCase();
   if (
     s.includes("notification") &&
@@ -275,6 +296,11 @@ export function errorCode(error: unknown): ErrorCode {
     s.includes("banner or sound")
   )
     return "notificationQuiet";
+  if (
+    s.includes("visual notifications are enabled") &&
+    s.includes("sound readiness could not be verified")
+  )
+    return "notificationSoundUnknown";
   if (s.includes("sound is disabled")) return "notificationSilent";
   if (s.includes("banner or sound")) return "notificationQuiet";
   if (
@@ -346,7 +372,16 @@ export function errorCode(error: unknown): ErrorCode {
   return "unknown";
 }
 export function presentError(error: unknown, fa: boolean): string {
-  return messages[errorCode(error)][fa ? 0 : 1];
+  const message = messages[errorCode(error)][fa ? 0 : 1];
+  const text =
+    typeof error === "string"
+      ? error
+      : error instanceof Error
+        ? error.message
+        : "";
+  const windowsFailure =
+    /^notificationWindows(?:Readiness|Send)Failed:(0x[0-9a-f]{8})$/i.exec(text);
+  return windowsFailure ? `${message} (${windowsFailure[1]})` : message;
 }
 export function capabilityMessage(
   caps: PlatformCapabilities,

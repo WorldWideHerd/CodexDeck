@@ -9,6 +9,7 @@ pub enum Readiness {
     NotRequested,
     Denied,
     Unavailable,
+    WindowsUnavailable(u32),
     RequestFailed,
     AppChanged,
 }
@@ -16,6 +17,18 @@ impl Readiness {
     pub fn can_send(self) -> bool {
         matches!(self, Self::Ready | Self::Silent | Self::SoundUnknown)
     }
+    pub fn failure(self) -> String {
+        match self {
+            Self::WindowsUnavailable(code) => {
+                format!("notificationWindowsReadinessFailed:0x{code:08X}")
+            }
+            _ => self
+                .message()
+                .unwrap_or("Notifications are unavailable.")
+                .into(),
+        }
+    }
+
     pub fn message(self) -> Option<&'static str> {
         match self{
         Self::Ready=>None,
@@ -27,6 +40,7 @@ impl Readiness {
         Self::Unverified=>Some("Visual notification authorization cannot yet be verified on this platform. Quota alerts are unavailable in this build."),
         Self::NotRequested=>Some("Enable notification permission in OS settings before using quota alerts."),
         Self::Denied=>Some("OS notification permission is denied. Enable CodexDeck notifications in system settings and retry."),
+        Self::WindowsUnavailable(_)=>Some("notificationWindowsReadinessFailed"),
         Self::Unavailable=>Some("Notification readiness could not be verified. Run the installed app in a desktop session and check OS notification settings."),
     }
     }
@@ -41,6 +55,7 @@ pub fn is_readiness_message(message: &str) -> bool {
         Readiness::NotRequested,
         Readiness::Denied,
         Readiness::Unavailable,
+        Readiness::WindowsUnavailable(0),
         Readiness::RequestFailed,
         Readiness::AppChanged,
     ]
@@ -189,10 +204,21 @@ mod platform {
         .map_err(|_| "The notification service stopped.".to_string())?
     }
 }
+// An explicit Windows test may bootstrap the first sender registration when
+// querying readiness fails. Normal quota alerts still require can_send(). Known
+// denials remain blocked; the OS enforces its own notification settings on Show.
+pub fn can_test_notification(readiness: Readiness, windows: bool) -> bool {
+    readiness.can_send() || (windows && matches!(readiness, Readiness::WindowsUnavailable(_)))
+}
+
 // Windows exposes visual authorization, but not per-app sound or Focus Assist state.
 #[cfg(any(test, windows))]
 fn classify_windows(enabled: bool) -> Readiness {
-    if enabled { Readiness::SoundUnknown } else { Readiness::Denied }
+    if enabled {
+        Readiness::SoundUnknown
+    } else {
+        Readiness::Denied
+    }
 }
 
 #[cfg(windows)]
@@ -207,9 +233,9 @@ mod platform {
     pub fn initialize() -> windows::core::Result<()> {
         // Set before creating windows, including when launched directly from Explorer.
         unsafe {
-            windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
-                windows::core::w!("com.codexdeck.desktop"),
-            )
+            windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(windows::core::w!(
+                "com.codexdeck.desktop"
+            ))
         }
     }
     fn notifier() -> windows::core::Result<windows::UI::Notifications::ToastNotifier> {
@@ -218,7 +244,7 @@ mod platform {
     pub async fn permission(_request: bool) -> Readiness {
         match notifier().and_then(|n| n.Setting()) {
             Ok(setting) => classify_windows(setting == NotificationSetting::Enabled),
-            Err(_) => Readiness::Unavailable,
+            Err(error) => Readiness::WindowsUnavailable(error.code().0 as u32),
         }
     }
     fn escape(s: &str) -> String {
@@ -229,7 +255,7 @@ mod platform {
             .replace('\'', "&apos;")
     }
     pub async fn send(title: &str, body: &str) -> Result<(), String> {
-        (||->windows::core::Result<()>{let xml=XmlDocument::new()?;xml.LoadXml(&HSTRING::from(format!("<toast><visual><binding template=\"ToastGeneric\"><text>{}</text><text>{}</text></binding></visual></toast>",escape(title),escape(body))))?;let toast=ToastNotification::CreateToastNotification(&xml)?;notifier()?.Show(&toast)})().map_err(|_|"Windows did not accept the quota notification. Check app notification settings.".into())
+        (||->windows::core::Result<()>{let xml=XmlDocument::new()?;xml.LoadXml(&HSTRING::from(format!("<toast><visual><binding template=\"ToastGeneric\"><text>{}</text><text>{}</text></binding></visual></toast>",escape(title),escape(body))))?;let toast=ToastNotification::CreateToastNotification(&xml)?;notifier()?.Show(&toast)})().map_err(|error| format!("notificationWindowsSendFailed:0x{:08X}", error.code().0 as u32))
     }
 }
 #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
@@ -242,9 +268,9 @@ mod platform {
         Err("Notifications are unsupported on this platform.".into())
     }
 }
-pub use platform::{permission, send};
 #[cfg(windows)]
 pub use platform::initialize;
+pub use platform::{permission, send};
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -271,9 +297,33 @@ mod tests {
     fn windows_enabled_allows_first_toast_and_disabled_blocks_it() {
         let enabled = classify_windows(true);
         assert_eq!(enabled, Readiness::SoundUnknown);
-        assert!(enabled.can_send(), "The first toast must not be blocked before Windows lists the sender");
+        assert!(
+            enabled.can_send(),
+            "The first toast must not be blocked before Windows lists the sender"
+        );
         assert_eq!(classify_windows(false), Readiness::Denied);
         assert!(!classify_windows(false).can_send());
+    }
+    #[test]
+    fn windows_test_can_bootstrap_an_unknown_sender_but_never_bypasses_denials() {
+        let unknown = Readiness::WindowsUnavailable(0x80070490);
+        assert!(!unknown.can_send());
+        assert!(can_test_notification(unknown, true));
+        assert!(!can_test_notification(unknown, false));
+        assert_eq!(
+            unknown.failure(),
+            "notificationWindowsReadinessFailed:0x80070490"
+        );
+        for status in [
+            Readiness::Denied,
+            Readiness::Quiet,
+            Readiness::Unavailable,
+            Readiness::Unverified,
+            Readiness::NotRequested,
+            Readiness::AppChanged,
+        ] {
+            assert!(!can_test_notification(status, true));
+        }
     }
     #[test]
     fn denied_and_unknown_are_not_deliverable() {
