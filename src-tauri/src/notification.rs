@@ -390,12 +390,27 @@ mod delivery_tests {
 /// Update permission notices without clearing unrelated account/delivery failures.
 pub fn reconcile_notice(current: &mut Option<String>, readiness: Readiness) {
     if current.as_deref().is_none_or(is_readiness_message) {
-        *current = readiness.message().map(str::to_owned);
+        // Sound-query limitations are informational, not an app failure. The
+        // settings test can still display that note next to its successful send.
+        *current = if readiness == Readiness::SoundUnknown {
+            None
+        } else {
+            readiness.message().map(str::to_owned)
+        };
     }
 }
 #[cfg(test)]
 mod notice_tests {
     use super::*;
+    #[test]
+    fn sound_uncertainty_does_not_create_a_global_error() {
+        let mut notice = Readiness::Unavailable.message().map(str::to_owned);
+        reconcile_notice(&mut notice, Readiness::SoundUnknown);
+        assert!(notice.is_none());
+        let mut notice = Some("Account refresh failed".into());
+        reconcile_notice(&mut notice, Readiness::SoundUnknown);
+        assert_eq!(notice.as_deref(), Some("Account refresh failed"));
+    }
     #[test]
     fn recheck_clears_stale_permission_and_preserves_unrelated_failure() {
         for status in [
