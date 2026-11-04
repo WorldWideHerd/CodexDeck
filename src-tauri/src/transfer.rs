@@ -382,6 +382,8 @@ pub fn capture(
     let mut data: Saved = serde_json::from_value(serde_json::to_value(saved).map_err(|_| INVALID)?)
         .map_err(|_| INVALID)?;
     data.state.last_error = None;
+    // Consent belongs to this installation, never to an account archive.
+    data.state.settings.reporting_consent = None;
     // A backup must not carry authorization to send future messages on another machine.
     data.warmup = None;
     data.desktop_account_id = None;
@@ -469,7 +471,9 @@ pub fn merge(
             }
             next.state.accounts.push(a);
         }
+        let local_consent = current.state.settings.reporting_consent;
         next.state.settings = payload.data.state.settings;
+        next.state.settings.reporting_consent = local_consent;
         next.transfer_extensions
             .extend(payload.data.transfer_extensions);
         // Executables are machine-specific and are never trusted from an imported archive.
@@ -548,7 +552,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         assert!(local_credentials(dir.path()).unwrap().is_none());
         write_local_credentials(dir.path(), Some("synthetic-secret")).unwrap();
-        assert_eq!(local_credentials(dir.path()).unwrap().as_deref(), Some("synthetic-secret"));
+        assert_eq!(
+            local_credentials(dir.path()).unwrap().as_deref(),
+            Some("synthetic-secret")
+        );
         std::fs::remove_file(dir.path().join("auth.json")).unwrap();
         assert!(local_credentials(dir.path()).unwrap().is_none());
         write_local_credentials(dir.path(), Some("new-login")).unwrap();
@@ -558,11 +565,21 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn file_credentials_are_private_and_reject_symlinks() {
-        use std::os::unix::fs::{PermissionsExt, symlink};
+        use std::os::unix::fs::{symlink, PermissionsExt};
         let dir = tempfile::tempdir().unwrap();
         write_local_credentials(dir.path(), Some("synthetic")).unwrap();
-        assert_eq!(std::fs::metadata(dir.path()).unwrap().permissions().mode() & 0o777, 0o700);
-        assert_eq!(std::fs::metadata(dir.path().join("auth.json")).unwrap().permissions().mode() & 0o777, 0o600);
+        assert_eq!(
+            std::fs::metadata(dir.path()).unwrap().permissions().mode() & 0o777,
+            0o700
+        );
+        assert_eq!(
+            std::fs::metadata(dir.path().join("auth.json"))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
         let target = dir.path().join("target");
         std::fs::write(&target, "untouched").unwrap();
         std::fs::remove_file(dir.path().join("auth.json")).unwrap();
@@ -704,9 +721,11 @@ mod tests {
             ..Default::default()
         };
         current.state.codex_executable = Some("/local/codex".into());
+        current.state.settings.reporting_consent = Some(false);
         let mut p = fixture();
         let source_id = p.data.state.accounts[0].id.clone();
         p.data.state.settings.language = "en".into();
+        p.data.state.settings.reporting_consent = Some(true);
         let r = merge(dir.path(), &mut current, p, &credentials).unwrap();
         assert_eq!((r.imported, r.skipped), (1, 0));
         let id = &current.state.accounts[0].id;
@@ -714,6 +733,7 @@ mod tests {
         assert!(current.alert_keys[id].is_below);
         assert_eq!(current.resolved_workspaces[id], "workspace");
         assert_eq!(current.state.settings.language, "en");
+        assert_eq!(current.state.settings.reporting_consent, Some(false));
         assert_eq!(
             current.state.codex_executable.as_deref(),
             Some("/local/codex")
@@ -728,6 +748,8 @@ mod tests {
         current.desktop_account_id = Some(id.clone());
         let exported = capture(dir.path(), &current, &credentials).unwrap();
         assert!(exported.data.desktop_account_id.is_none());
+        assert!(exported.data.state.settings.reporting_consent.is_none());
+        assert_eq!(current.state.settings.reporting_consent, Some(false));
         assert_eq!(current.desktop_account_id.as_ref(), Some(id));
         assert!(exported.data.warmup.is_none());
         assert!(current.warmup.is_some());

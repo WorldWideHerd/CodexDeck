@@ -1,4 +1,8 @@
 import { AccountTransfer } from "@/components/account-transfer";
+import {
+  ReportingControl,
+  ReportingDetails,
+} from "@/components/reporting-consent";
 import { localizeDigits } from "@/lib/numbers";
 import { version as appVersion } from "../../package.json";
 import { capabilityMessage, presentError } from "@/lib/presentation";
@@ -294,6 +298,25 @@ export function SettingsPanel({
           </p>
         </Section>
 
+        <Section
+          title={t("گزارش اختیاری", "Optional reporting")}
+          icon={<Hand />}
+        >
+          <ReportingControl
+            consent={state.settings.reportingConsent}
+            fa={fa}
+            busy={!native || busy}
+            onChoose={(reportingConsent) => settings({ reportingConsent })}
+          />
+          <p>
+            {t(
+              "با خاموش‌کردن، گزارش‌های جدید متوقف می‌شوند و حضور آنلاین حذف می‌شود؛ اگر اتصال برقرار نباشد، حداکثر پس از ۳ دقیقه منقضی می‌شود.",
+              "Turning this off stops new reports and removes online presence; if the connection fails, presence expires within 3 minutes.",
+            )}
+          </p>
+          <ReportingDetails fa={fa} />
+        </Section>
+
         <details className="settings-advanced">
           <summary>
             <Hand />
@@ -312,8 +335,8 @@ export function SettingsPanel({
             </p>
             <p>
               {t(
-                "هیچ گزارش عیب‌یابی یا دادهٔ تله‌متری ارسال نمی‌شود. سرویس گزارش اختیاری در این نسخه متصل نیست.",
-                "No diagnostic reports or telemetry are sent. The optional reporting service is not connected in this version.",
+                "گزارش استفاده و خطا فقط با انتخاب شما فعال می‌شود. انتخاب شما در بخش گزارش اختیاری قابل تغییر است.",
+                "Usage and error reporting starts only with your permission. Change your choice under Optional reporting.",
               )}
             </p>
           </div>

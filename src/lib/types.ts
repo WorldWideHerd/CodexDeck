@@ -59,6 +59,7 @@ export interface Settings {
   layout: "cards" | "list";
   sort: "manual" | "fiveHour" | "weekly" | "reset";
   pinned: boolean;
+  reportingConsent?: boolean | null;
 }
 export interface AppState {
   accounts: Account[];

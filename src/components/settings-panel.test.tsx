@@ -72,9 +72,12 @@ describe("settings panel", () => {
     expect(html).toContain(
       "The update service is not connected in this version.",
     );
-    expect(html).toContain("No diagnostic reports or telemetry are sent.");
     expect(html).toContain(
-      "The optional reporting service is not connected in this version.",
+      "Usage and error reporting starts only with your permission.",
+    );
+    expect(html).toContain('role="switch" aria-checked="false" disabled=""');
+    expect(html).toContain(
+      "Account details, tokens, chats, file paths and raw error messages are not sent.",
     );
     for (const label of ["Quit app", "Choose Codex CLI executable"]) {
       const action = buttons(html).find((button) => button.text === label);

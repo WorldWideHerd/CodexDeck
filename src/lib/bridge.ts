@@ -21,6 +21,7 @@ export const emptyState: AppState = {
     layout: "list",
     sort: "manual",
     pinned: false,
+    reportingConsent: null,
   },
   codexExecutable: null,
   lastError: null,

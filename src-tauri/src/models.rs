@@ -111,6 +111,8 @@ pub struct Settings {
     pub layout: String,
     pub sort: String,
     pub pinned: bool,
+    // None means the user has not chosen yet. Reporting requires explicit true.
+    pub reporting_consent: Option<bool>,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -122,6 +124,7 @@ impl Default for Settings {
             layout: "list".into(),
             sort: "manual".into(),
             pinned: false,
+            reporting_consent: None,
         }
     }
 }

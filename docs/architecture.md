@@ -9,6 +9,7 @@
 | `src-tauri/src/alerts.rs`, `notification.rs` | Quota transitions and native notifications           |
 | `src-tauri/src/transfer.rs`, `warmup.rs`     | Encrypted transfer and one-shot prompt scheduling    |
 | `native/macos/`                              | Swift account-switching bridge and credential broker |
+| `src-tauri/src/reporting.rs`                | Consent-gated HTTPS presence and allowlisted errors   |
 | `scripts/`                                   | Build, signing, packaging and migration tools        |
 
 ## Frontend/native boundary
@@ -20,3 +21,7 @@ Events update state (`state-changed`), login (`login-changed`), switching (`desk
 Isolated accounts use separate CLI homes. On macOS, credentials use private, owner-only `auth.json` files; other platforms use the OS credential store. macOS original-account switching uses a Swift transaction and a signed XPC broker; keep bundle identifiers and signing identity stable. Archive credentials stay native to the [transfer implementation](account-transfer.md).
 
 macOS is locally validated. Windows/Linux runtime behavior remains unverified; original-account switching is unavailable there. Notification availability depends on native readiness and OS permissions.
+
+## Optional reporting boundary
+
+The native reporter alone owns the fixed HTTPS service destination; the webview cannot send arbitrary URLs or payloads. Consent is nullable (not chosen / enabled / declined) and only explicit enabled permits transmission. Presence is process-local on both sides and the online dashboard updates without database writes. Error payloads use static operation/error categories and temporary random identifiers. See [Privacy](../PRIVACY.md) for the exact data and retention.

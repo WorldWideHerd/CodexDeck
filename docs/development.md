@@ -54,3 +54,13 @@ The optional `scripts/import_swift_metadata.py` tool imports old Swift metadata 
 After dependency changes, regenerate and review notices with `npm run licenses:generate`. This reads the complete locked Rust graph, including other platforms. For the reviewed GLib backport, install the GLib development library and run the optimized probe described in [vendor/README.md](../vendor/README.md).
 
 The macOS signing helper temporarily includes only the local signing keychain alongside the existing search list while `codesign` runs, then restores the list even if signing fails. It does not change the default keychain, trust settings or account credential ACLs. Build-tool tests exercise a fresh temporary identity so CI does not depend on a developer’s cached signing state.
+
+## Reporting connection check
+
+After deploying the companion server, run the built app executable with `--reporting-smoke-test`. This exits before normal app initialization and uses the production native HTTPS transport to check `/health`, `/ready`, and a temporary presence join/leave. It does not load local accounts or generate synthetic diagnostic records. Run it explicitly; ordinary startup never uses the probe to bypass consent.
+
+```sh
+output/CodexDeck.app/Contents/MacOS/codexdeck --reporting-smoke-test
+```
+
+The service must include `/v1/presence`; deploy server changes before distributing this app. Existing installations with no stored consent remain off and display the one-time choice. Keep reporting endpoints behind HTTPS with the real trusted Traefik CIDR configured on the server. Current clients do not send durable installation/launch metrics; the server's historical 7/30-day charts remain separate from its live count.

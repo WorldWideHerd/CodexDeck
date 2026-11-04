@@ -4,12 +4,18 @@ mod desktop;
 mod discovery;
 mod models;
 mod notification;
+mod reporting;
 mod rpc;
 mod storage;
 mod transfer;
 mod warmup;
 pub fn desktop_switch_probe() -> bool {
     desktop::probe()
+}
+pub fn reporting_smoke_test() -> Result<(), String> {
+    tokio::runtime::Runtime::new()
+        .map_err(|_| "Could not start connectivity check".to_string())?
+        .block_on(reporting::smoke_test())
 }
 #[tauri::command]
 async fn get_warmup(core: Core<'_>) -> Result<Option<warmup::Job>, String> {
@@ -149,7 +155,10 @@ async fn save_settings(
     Ok(state)
 }
 #[tauri::command]
-async fn refresh_accounts(core: Core<'_>, id: Option<String>) -> Result<models::RefreshResult, String> {
+async fn refresh_accounts(
+    core: Core<'_>,
+    id: Option<String>,
+) -> Result<models::RefreshResult, String> {
     core.inner().refresh_with_outcome(id).await
 }
 #[tauri::command]
@@ -503,7 +512,8 @@ fn toggle_menubar(app: &tauri::AppHandle, rect: tauri::Rect) {
             .map(|m| m.scale_factor())
             .unwrap_or(prior_scale);
         if let Some(monitor) = &monitor {
-            logical_height = logical_height.min(monitor.work_area().size.height as f64 / scale - 8.0);
+            logical_height =
+                logical_height.min(monitor.work_area().size.height as f64 / scale - 8.0);
         }
         if window
             .set_size(tauri::LogicalSize::new(MENUBAR_WIDTH, logical_height))
@@ -626,7 +636,10 @@ pub fn run() {
             .title("CodexDeck")
             .inner_size(
                 MENUBAR_WIDTH,
-                menubar_height(initial_state.accounts.len(), initial_state.last_error.is_some()),
+                menubar_height(
+                    initial_state.accounts.len(),
+                    initial_state.last_error.is_some(),
+                ),
             )
             .resizable(false)
             .decorations(false)

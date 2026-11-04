@@ -31,6 +31,7 @@ pub struct Backend {
     // A corrupt metadata file must never be overwritten by a subsequent command.
     storage_error: Option<String>,
     delivery_errors: Mutex<Option<(String, String)>>,
+    reporting: crate::reporting::Reporter,
 }
 impl Backend {
     pub async fn check_notification_readiness(
@@ -57,6 +58,7 @@ impl Backend {
             saved.state.codex_executable = discovery::discover();
         }
         let (events, rx) = rpc::event_channel();
+        let reporting = crate::reporting::Reporter::new(saved.state.settings.reporting_consent);
         Ok((
             Arc::new(Self {
                 app,
@@ -74,6 +76,7 @@ impl Backend {
                 refresh_gate: Mutex::new(()),
                 storage_error,
                 delivery_errors: Mutex::new(None),
+                reporting,
             }),
             rx,
         ))
@@ -204,7 +207,16 @@ impl Backend {
             "language":saved.state.settings.language, "selectedID":id,
             "previousID":saved.desktop_account_id, "profiles":profiles});
         drop(saved);
-        let active = crate::desktop::switch(&self.app, request).await?;
+        let active = crate::desktop::switch(&self.app, request)
+            .await
+            .map_err(|error| {
+                self.reporting.record(if id.is_some() {
+                    crate::reporting::Diagnostic::Switch
+                } else {
+                    crate::reporting::Diagnostic::Restore
+                });
+                error
+            })?;
         self.saved.lock().await.desktop_account_id = active;
         self.publish().await
     }
@@ -213,6 +225,7 @@ impl Backend {
         let result = storage::save(&self.root, &saved);
         if let Err(error) = &result {
             saved.state.last_error = Some(error.clone());
+            self.reporting.record(crate::reporting::Diagnostic::Storage);
         }
         let state = saved.state.clone();
         drop(saved);
@@ -447,6 +460,10 @@ impl Backend {
                 "layout" => settings.layout = v.as_str().ok_or("Invalid layout.")?.into(),
                 "sort" => settings.sort = v.as_str().ok_or("Invalid sort.")?.into(),
                 "pinned" => settings.pinned = v.as_bool().ok_or("Invalid pinned setting.")?,
+                "reportingConsent" => {
+                    settings.reporting_consent =
+                        Some(v.as_bool().ok_or("Invalid reporting choice.")?)
+                }
                 _ => return Err("Unsupported app setting.".into()),
             }
         }
@@ -456,12 +473,21 @@ impl Backend {
                 .set_always_on_top(settings.pinned)
                 .map_err(|_| "Could not pin the window.".to_string())?;
         }
+        let consent = settings.reporting_consent;
+        // Withdraw immediately; enabling waits for successful persistence below.
+        if consent != Some(true) {
+            self.reporting.set_consent(consent);
+        }
         self.saved.lock().await.state.settings = settings;
         self.schedule.notify_one();
-        self.publish().await
+        let state = self.publish().await?;
+        self.reporting.set_consent(consent);
+        Ok(state)
     }
     pub async fn refresh(self: &Arc<Self>, id: Option<String>) -> Result<AppState, String> {
-        self.refresh_with_outcome(id).await.map(|result| result.state)
+        self.refresh_with_outcome(id)
+            .await
+            .map(|result| result.state)
     }
     pub async fn refresh_with_outcome(
         self: &Arc<Self>,
@@ -514,6 +540,7 @@ impl Backend {
                 self.set_status(id, Status::NeedsLogin, None).await;
             }
             Err(error) => {
+                self.reporting.record(crate::reporting::Diagnostic::Refresh);
                 let status = if error.contains("Sign in again") {
                     Status::NeedsLogin
                 } else {
@@ -706,6 +733,7 @@ impl Backend {
                 Ok(login)
             }
             Err(error) => {
+                self.reporting.record(crate::reporting::Diagnostic::SignIn);
                 if let Some(client) = self.clients.lock().await.remove(&id) {
                     client.stop().await;
                 }
@@ -993,6 +1021,7 @@ impl Backend {
         }
     }
     pub async fn shutdown(&self) {
+        self.reporting.shutdown().await;
         let mut clients = self.clients.lock().await;
         for (_, client) in clients.drain() {
             client.stop().await;
