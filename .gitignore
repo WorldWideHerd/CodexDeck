@@ -26,3 +26,10 @@ src-tauri/generated-icons/
 server/
 legacy/
 CodexDeck-Private/
+
+# Local signing material
+*.p12
+*.pfx
+*.key
+*.mobileprovision
+scripts/tests/glib-variant-probe/target/

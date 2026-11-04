@@ -49,6 +49,16 @@ def inspect(app, version, release):
     archs = binary_architectures(app / 'Contents/MacOS' / name)
     if binary_architectures(broker / 'Contents/MacOS/CodexDeckCredentials') != archs:
         raise ValueError('Application and credential broker architectures differ.')
+    notices = {
+        'CodexDeck-MIT.txt': ROOT / 'LICENSE',
+        'third-party-notices.txt': ROOT / 'public/licenses/third-party-notices.txt',
+        'shadcn-MIT.txt': ROOT / 'public/licenses/shadcn-MIT.txt',
+        'Vazirmatn-OFL.txt': ROOT / 'public/fonts/OFL.txt',
+    }
+    for name, source in notices.items():
+        bundled = app / 'Contents/Resources/licenses' / name
+        if not bundled.is_file() or bundled.read_bytes() != source.read_bytes():
+            raise ValueError(f'Missing or stale bundled license notice: {name}')
     run('/usr/bin/codesign', '--verify', '--deep', '--strict', str(app))
     run('/usr/bin/codesign', '--verify', '--strict', '-R', '=' + requirement, str(broker))
     details = run('/usr/bin/codesign', '-d', '--verbose=4', str(app))

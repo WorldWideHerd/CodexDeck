@@ -1,0 +1,8 @@
+[package]
+name = "codexdeck-glib-variant-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+glib = { path = "../../../vendor/glib", default-features = false }

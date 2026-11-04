@@ -27,7 +27,7 @@ All screenshots show the English interface with synthetic accounts. They are ren
 
 ## Downloads
 
-Official downloads belong in [GitHub Releases](https://github.com/WorldWideHerd/CodexDeck/releases). A notarized public release has not yet been validated. CI artifacts ending in `-preview.zip` use local development signatures. Each macOS archive includes a matching `.sha256` checksum and `.json` manifest.
+Official downloads belong in [GitHub Releases](https://github.com/WorldWideHerd/CodexDeck/releases). A notarized public release has not yet been validated. CI artifacts ending in `-preview.zip` use local development signatures. Each release asset includes a matching `.sha256` checksum and `.json` manifest. Windows/Linux preview installers are experimental; Windows previews are unsigned.
 
 For a published macOS release, verify the checksum, extract the ZIP and move `CodexDeck.app` to Applications. See the [release guide](docs/releasing.md) for packaging, Apple signing, GitHub setup and installation checks.
 
@@ -56,4 +56,4 @@ The macOS script uses a persistent local development signing identity by default
 
 ## License
 
-[MIT](LICENSE). Bundled components retain their own notices: [shadcn/ui](public/licenses/shadcn-MIT.txt) and [Vazirmatn](public/fonts/OFL.txt).
+[MIT](LICENSE). Bundled components retain their own licenses: [third-party notices](public/licenses/third-party-notices.txt), [shadcn/ui](public/licenses/shadcn-MIT.txt) and [Vazirmatn](public/fonts/OFL.txt). These notices are also included in the installed application’s resource `licenses` directory. See [dependency security](docs/dependency-security.md) for the reviewed Linux backport and upstream maintenance warnings.

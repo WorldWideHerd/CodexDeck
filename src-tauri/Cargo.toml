@@ -41,5 +41,9 @@ notify-rust = "4"
 keyring = { version = "3.6", features = ["linux-native-sync-persistent", "crypto-rust"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["UI_Notifications", "Data_Xml_Dom", "Foundation"] }
+windows = { version = "0.62", features = ["UI_Notifications", "Data_Xml_Dom", "Foundation", "Win32_UI_Shell"] }
 keyring = { version = "3.6", features = ["windows-native"] }
+
+# GTK 3 is required by Tauri on Linux; see vendor/README.md for the backport.
+[patch.crates-io]
+glib = { path = "../vendor/glib" }

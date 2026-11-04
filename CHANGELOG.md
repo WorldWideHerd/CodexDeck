@@ -2,6 +2,11 @@
 
 ## 0.1.0 — release candidate
 
+- Initialize the Windows notification sender identity and allow the first enabled toast; installer/runtime verification remains required.
+- Bundle complete locked dependency license notices and check them in CI.
+- Backport the GLib string-iterator output-pointer safety fix needed by the Linux GTK 3 backend.
+- Prepare preview release drafts without Apple credentials, with per-platform checksums/manifests and a separate strict notarized macOS release channel.
+
 - Multi-account Codex usage dashboard with five-hour and weekly quota windows.
 - Isolated sign-in, quota notifications and a menu bar summary.
 - Password-encrypted account export/import.

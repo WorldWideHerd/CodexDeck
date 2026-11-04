@@ -1,0 +1,158 @@
+{
+  "cargo:alloc-stdlib@0.3.0": {
+    "file": "alloc-stdlib-0.3.0.txt",
+    "sha256": "99b4ed2711f924de4df596cf368d1ab7a48e23247af7354c33d10cb11d38550a"
+  },
+  "cargo:block2@0.6.2": {
+    "file": "block2-0.6.2.txt",
+    "sha256": "90917314c53760acbf5cdeb41de167ffb0767f81b8b58caebcef84f4ad95f307"
+  },
+  "cargo:dispatch2@0.3.1": {
+    "file": "dispatch2-0.3.1.txt",
+    "sha256": "c33ef0bf26410674584023972f8c00a45e5530e00e2519c816f6fc3183e353fc"
+  },
+  "cargo:dlopen2@0.8.2": {
+    "file": "dlopen2-0.8.2.txt",
+    "sha256": "4813bd49d4c7cfefe9f56951b073f4e41a0a79c5e984f04ff194aa79c1c73faf"
+  },
+  "cargo:dlopen2_derive@0.4.3": {
+    "file": "dlopen2_derive-0.4.3.txt",
+    "sha256": "4813bd49d4c7cfefe9f56951b073f4e41a0a79c5e984f04ff194aa79c1c73faf"
+  },
+  "cargo:jni-sys-macros@0.4.1": {
+    "file": "jni-sys-macros-0.4.1.txt",
+    "sha256": "c2b2baa888e78d86996929b21c08457602330c4fc929e32be35edc2cc1295f4d"
+  },
+  "cargo:libappindicator-sys@0.9.0": {
+    "file": "libappindicator-sys-0.9.0.txt",
+    "sha256": "1261890b15adaddb89b6efea9892a3ebd3e9d9a7d0798f76f37d8cc3920865d7"
+  },
+  "cargo:linux-keyutils@0.2.5": {
+    "file": "linux-keyutils-0.2.5.txt",
+    "sha256": "5a54cdaf972de51a3c8f5bea4b52d85c89f83ac385723fb82979dab5f62a4efe"
+  },
+  "cargo:mac-notification-sys@0.6.15": {
+    "file": "mac-notification-sys-0.6.15.txt",
+    "sha256": "3bab408b89d14e16cbaf7a3d123a31a81cf3b655fdd79cd16fb8282fe61643f7"
+  },
+  "cargo:ndk-context@0.1.1": {
+    "file": "ndk-context-0.1.1.txt",
+    "sha256": "85e353ae9223287ce8486288fe06e9b5dc39b9907ebe4b43ad6fcb13355fb3cc"
+  },
+  "cargo:ndk-sys@0.6.0+11769913": {
+    "file": "ndk-sys-0.6.0+11769913.txt",
+    "sha256": "e9c2e2eee59ea5d34b53bd991f6dad5934fe87c47a277fa99c099828c0519e36"
+  },
+  "cargo:ndk@0.9.0": {
+    "file": "ndk-0.9.0.txt",
+    "sha256": "e9c2e2eee59ea5d34b53bd991f6dad5934fe87c47a277fa99c099828c0519e36"
+  },
+  "cargo:objc2-app-kit@0.3.2": {
+    "file": "objc2-app-kit-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-cloud-kit@0.3.2": {
+    "file": "objc2-cloud-kit-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-core-data@0.3.2": {
+    "file": "objc2-core-data-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-core-foundation@0.3.2": {
+    "file": "objc2-core-foundation-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-core-graphics@0.3.2": {
+    "file": "objc2-core-graphics-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-core-image@0.3.2": {
+    "file": "objc2-core-image-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-core-location@0.3.2": {
+    "file": "objc2-core-location-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-core-text@0.3.2": {
+    "file": "objc2-core-text-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-encode@4.1.0": {
+    "file": "objc2-encode-4.1.0.txt",
+    "sha256": "307fa49b965c7765a99bebe5d4cef28e70e2fbe764445a0a3503a651c48932f8"
+  },
+  "cargo:objc2-exception-helper@0.1.1": {
+    "file": "objc2-exception-helper-0.1.1.txt",
+    "sha256": "307fa49b965c7765a99bebe5d4cef28e70e2fbe764445a0a3503a651c48932f8"
+  },
+  "cargo:objc2-foundation@0.3.2": {
+    "file": "objc2-foundation-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-io-surface@0.3.2": {
+    "file": "objc2-io-surface-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-quartz-core@0.3.2": {
+    "file": "objc2-quartz-core-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-ui-kit@0.3.2": {
+    "file": "objc2-ui-kit-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-user-notifications@0.3.2": {
+    "file": "objc2-user-notifications-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2-web-kit@0.3.2": {
+    "file": "objc2-web-kit-0.3.2.txt",
+    "sha256": "bbcaa999b524f011d0bab17c914879d2c4f588def9bc0c4300f9a5ca1182e9e9"
+  },
+  "cargo:objc2@0.6.5": {
+    "file": "objc2-0.6.5.txt",
+    "sha256": "e2dc7de8ba08ba2ac213ef3a28c25b2f013661ca546d81cf45584150601f5abc"
+  },
+  "cargo:r-efi@5.3.0": {
+    "file": "r-efi-5.3.0.txt",
+    "sha256": "23cb99e4371a985e69aba98e30a5f4f9843080324a6a0ab289bc2960fecc65e4"
+  },
+  "cargo:r-efi@6.0.0": {
+    "file": "r-efi-6.0.0.txt",
+    "sha256": "a80679fb08765017dfc806d957e01c6defb7e086a8d51533eab38b27f74ea27f"
+  },
+  "cargo:selectors@0.38.0": {
+    "file": "selectors-0.38.0.txt",
+    "sha256": "ab41d6befd53140b26d82bd3c6cf2a7b83979093757d1c451b440f63aaae5043"
+  },
+  "cargo:tauri-plugin@2.7.2": {
+    "file": "tauri-plugin-2.7.2.txt",
+    "sha256": "5514a538052b4d8d698dd48e00e7ec442a391b57373731b36dedc1ed2e374da1"
+  },
+  "cargo:webview2-com-macros@0.8.1": {
+    "file": "webview2-com-macros-0.8.1.txt",
+    "sha256": "06abf03ebb542ffd9e6f450d6e83bb563f1cda79ea09a0ca04ddbca78b34c8da"
+  },
+  "cargo:webview2-com-sys@0.39.1": {
+    "file": "webview2-com-sys-0.39.1.txt",
+    "sha256": "580d33c3dc3a4eeacc88a1ecd7013937606d258f9b9682665db6c322a688c94c"
+  },
+  "cargo:webview2-com@0.39.1": {
+    "file": "webview2-com-0.39.1.txt",
+    "sha256": "580d33c3dc3a4eeacc88a1ecd7013937606d258f9b9682665db6c322a688c94c"
+  },
+  "cargo:winapi-i686-pc-windows-gnu@0.4.0": {
+    "file": "winapi-i686-pc-windows-gnu-0.4.0.txt",
+    "sha256": "ba4691b5866cd292c5d587f59976418dc847030f48ef83781371c604b30dc757"
+  },
+  "cargo:winapi-x86_64-pc-windows-gnu@0.4.0": {
+    "file": "winapi-x86_64-pc-windows-gnu-0.4.0.txt",
+    "sha256": "ba4691b5866cd292c5d587f59976418dc847030f48ef83781371c604b30dc757"
+  },
+  "npm:react-remove-scroll-bar@2.3.8": {
+    "file": "react-remove-scroll-bar-2.3.8.txt",
+    "sha256": "93e9426b4455568d3ed7a2a2809f5ebbc8ca917cb5da27af9e22ed9fa3ceca60"
+  }
+}

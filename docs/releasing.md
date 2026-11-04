@@ -17,6 +17,7 @@ Use `npm run version:sync` after a manual version edit. The checker also rejects
 npm ci
 npm run version:check
 npm run test:release
+npm run licenses:check
 npm test
 npm run format:check
 npm run build
@@ -66,7 +67,11 @@ Create the destination repository, connect this checkout to it, review and commi
 
 The regular CI workflow checks Apple Silicon macOS, Intel macOS, Windows and Linux. It builds complete signed macOS previews and checks authenticated broker connections; Windows produces an NSIS installer and Linux a Debian package. Artifacts are retained for 14 days. These jobs still need to run on GitHub before their platforms can be considered validated.
 
-The [release workflow](../.github/workflows/release.yml) requires these repository Actions secrets:
+Set the default branch to `main` once it contains the reviewed source. For an open-source public launch, confirm repository visibility is Public, the MIT license is detected, and the Security reporting link works. These are account-level settings, not changes made by local build scripts.
+
+The [release workflow](../.github/workflows/release.yml) defaults to **preview** for tag pushes and manual runs. Preview builds do not require Apple credentials. It builds Apple Silicon and Intel macOS previews plus experimental Windows x64 NSIS and Linux amd64 Debian installers. Each asset has a checksum and manifest; Windows previews are unsigned. It creates a prerelease **draft**, never a public release. Build failures prevent the draft job.
+
+For an official macOS release, manually run the workflow with an existing version tag and select `channel: release`. This channel requires these repository Actions secrets:
 
 | Secret | Value |
 | --- | --- |
@@ -84,7 +89,9 @@ git tag -a v0.1.0 -m "CodexDeck 0.1.0"
 git push origin v0.1.0
 ```
 
-A version tag starts macOS release builds for both architectures. The workflow signs, notarizes and validates both, verifies archive checksums, then prepares a **draft** GitHub Release. It never publishes the draft automatically, and reruns refuse to overwrite assets of an already published release. A manual workflow run can retry an existing tag. Dependency updates are proposed monthly by Dependabot.
+A version tag starts preview builds. For a public launch, review the draft, download and test every offered platform, and explicitly publish it. Official-channel macOS builds sign, notarize and validate both architectures before preparing a draft. Windows/Linux assets are only included in preview-channel drafts until their runtime validation and distribution signing requirements are addressed.
+
+Release notes are version-specific: add `docs/releases/v<version>.md` before tagging. The tag must exactly match `package.json`; previews still use the exact app version and are distinguished by asset filenames and prerelease status. To use a semantic prerelease tag, set the app version to that prerelease first. Reruns may replace assets only on a draft of the same channel. Published releases and channel changes are rejected; use a new version/tag for corrections. A manual workflow run can retry an existing tag. Dependency updates are proposed monthly by Dependabot.
 
 ## Validate the downloadable app before publishing
 
@@ -100,3 +107,9 @@ Record the macOS version, architecture, app version and exact installed Codex CL
 - Upgrade from the previous release and confirm saved accounts, settings and credential access remain usable.
 
 Complete these checks for Intel macOS before claiming Intel support, and run the equivalent account/notification checks on Windows/Linux before claiming support there. Attach only synthetic or redacted screenshots to public issues. Read `CHANGELOG.md`, review the draft's assets, then publish it from GitHub Releases.
+
+## Dependency and notice checks
+
+Run `npm run licenses:generate` after changing dependencies, review and commit the resulting notices and any version-pinned supplements, then run `npm run licenses:check`. The generator needs installed npm packages and Cargo access to locked crate sources for all platforms. Notices are committed so ordinary builds do not require a new license service or license-generation network request. See [dependency security](dependency-security.md) for the GLib backport and unresolved upstream maintenance warnings.
+
+Local macOS validation does not create Windows/Linux installers. Those installers must be built on their respective runners and pass the interactive checks, including [Windows notification registration](testing/windows-notifications.md).

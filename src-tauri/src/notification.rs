@@ -189,6 +189,12 @@ mod platform {
         .map_err(|_| "The notification service stopped.".to_string())?
     }
 }
+// Windows exposes visual authorization, but not per-app sound or Focus Assist state.
+#[cfg(any(test, windows))]
+fn classify_windows(enabled: bool) -> Readiness {
+    if enabled { Readiness::SoundUnknown } else { Readiness::Denied }
+}
+
 #[cfg(windows)]
 mod platform {
     use super::*;
@@ -197,13 +203,21 @@ mod platform {
         Data::Xml::Dom::XmlDocument,
         UI::Notifications::{NotificationSetting, ToastNotification, ToastNotificationManager},
     };
+    const APP_ID: &str = "com.codexdeck.desktop";
+    pub fn initialize() -> windows::core::Result<()> {
+        // Set before creating windows, including when launched directly from Explorer.
+        unsafe {
+            windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
+                windows::core::w!("com.codexdeck.desktop"),
+            )
+        }
+    }
     fn notifier() -> windows::core::Result<windows::UI::Notifications::ToastNotifier> {
-        ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from("com.codexdeck.desktop"))
+        ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(APP_ID))
     }
     pub async fn permission(_request: bool) -> Readiness {
         match notifier().and_then(|n| n.Setting()) {
-            Ok(setting) if setting == NotificationSetting::Enabled => Readiness::Unverified,
-            Ok(_) => Readiness::Denied,
+            Ok(setting) => classify_windows(setting == NotificationSetting::Enabled),
             Err(_) => Readiness::Unavailable,
         }
     }
@@ -229,6 +243,8 @@ mod platform {
     }
 }
 pub use platform::{permission, send};
+#[cfg(windows)]
+pub use platform::initialize;
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,6 +266,14 @@ mod tests {
         }
         assert!(!Readiness::Unverified.can_send());
         assert!(!Readiness::Quiet.can_send());
+    }
+    #[test]
+    fn windows_enabled_allows_first_toast_and_disabled_blocks_it() {
+        let enabled = classify_windows(true);
+        assert_eq!(enabled, Readiness::SoundUnknown);
+        assert!(enabled.can_send(), "The first toast must not be blocked before Windows lists the sender");
+        assert_eq!(classify_windows(false), Readiness::Denied);
+        assert!(!classify_windows(false).can_send());
     }
     #[test]
     fn denied_and_unknown_are_not_deliverable() {

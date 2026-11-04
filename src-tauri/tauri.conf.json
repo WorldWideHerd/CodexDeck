@@ -37,6 +37,11 @@
     ],
     "macOS": {
       "minimumSystemVersion": "13.0"
+    },
+    "resources": {
+      "../LICENSE": "licenses/CodexDeck-MIT.txt",
+      "../public/licenses/": "licenses/",
+      "../public/fonts/OFL.txt": "licenses/Vazirmatn-OFL.txt"
     }
   }
 }

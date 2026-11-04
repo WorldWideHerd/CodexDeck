@@ -20,6 +20,7 @@ Run commands from the repository root. Prerequisites are listed in the [README](
 npm test
 npm run test:release
 npm run version:check
+npm run licenses:check
 npm run format:check
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
@@ -49,3 +50,5 @@ Original-account switching requires the signed app and the official Codex/ChatGP
 Dependencies and generated output (`node_modules/`, `dist/`, `output/`, `src-tauri/target/`, generated icons and `.build/`) are ignored. Private service configuration is maintained outside this repository and is not a build dependency.
 
 The optional `scripts/import_swift_metadata.py` tool imports old Swift metadata into an empty destination. Run with `--help`; omit `--apply` to validate without writing. Credentials are not imported, so accounts require signing in again.
+
+After dependency changes, regenerate and review notices with `npm run licenses:generate`. This reads the complete locked Rust graph, including other platforms. For the reviewed GLib backport, install the GLib development library and run the optimized probe described in [vendor/README.md](../vendor/README.md).

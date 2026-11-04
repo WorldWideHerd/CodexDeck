@@ -22,6 +22,15 @@ class PackageTests(unittest.TestCase):
             'CFBundleIdentifier': 'com.codexdeck.desktop', 'CFBundleExecutable': 'codexdeck',
             'CFBundleShortVersionString': VERSION,
             'CredentialBrokerRequirement': 'identifier "local.codex.usage.credentials"'}))
+        licenses = app / 'Contents/Resources/licenses'
+        licenses.mkdir(parents=True)
+        for name, source in {
+            'CodexDeck-MIT.txt': packager.ROOT / 'LICENSE',
+            'third-party-notices.txt': packager.ROOT / 'public/licenses/third-party-notices.txt',
+            'shadcn-MIT.txt': packager.ROOT / 'public/licenses/shadcn-MIT.txt',
+            'Vazirmatn-OFL.txt': packager.ROOT / 'public/fonts/OFL.txt',
+        }.items():
+            (licenses / name).write_bytes(source.read_bytes())
         return app
 
     def test_missing_broker_is_rejected_before_archiving(self):
@@ -40,6 +49,19 @@ class PackageTests(unittest.TestCase):
             with patch.object(packager, 'binary_architectures', side_effect=[['arm64'], ['x86_64']]), \
                     self.assertRaisesRegex(ValueError, 'architectures differ'):
                 packager.inspect(app, VERSION, False)
+
+    def test_missing_or_stale_bundled_notice_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            app = self.make_app(Path(folder))
+            notice = app / 'Contents/Resources/licenses/third-party-notices.txt'
+            for stale in (False, True):
+                if stale:
+                    notice.write_text('outdated notices')
+                else:
+                    notice.unlink()
+                with patch.object(packager, 'binary_architectures', return_value=['arm64']), \
+                        self.assertRaisesRegex(ValueError, 'license notice'):
+                    packager.inspect(app, VERSION, False)
 
     def test_local_signature_cannot_be_mislabeled_as_a_public_release(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -1,14 +1,19 @@
-name: Prepare notarized macOS release
+name: Prepare desktop release draft
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
         description: Existing version tag, for example v0.1.0
         required: true
         type: string
+      channel:
+        description: Preview needs no Apple credentials; release requires signing and notarization
+        type: choice
+        default: preview
+        options: [preview, release]
 
 permissions:
   contents: read
@@ -19,6 +24,7 @@ concurrency:
 
 env:
   RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+  RELEASE_CHANNEL: ${{ inputs.channel || 'preview' }}
 
 jobs:
   macos:
@@ -33,13 +39,14 @@ jobs:
           ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
       - name: Check source and version tag
         run: |
           npm run version:check -- "$RELEASE_TAG"
+          npm run licenses:check
           npm run test:release
           npm test
           npm run format:check
@@ -48,6 +55,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_*.py'
           bash scripts/test-desktop-quit.sh
       - name: Require release credentials
+        if: env.RELEASE_CHANNEL == 'release'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -65,19 +73,20 @@ jobs:
               raise SystemExit('Configure these repository secrets first: ' + ', '.join(missing))
           PY
       - uses: apple-actions/import-codesign-certs@v7
+        if: env.RELEASE_CHANNEL == 'release'
         with:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      - name: Build with Developer ID
+      - name: Build complete signed app
         env:
-          CODEXDECK_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          CODEXDECK_SIGNING_IDENTITY: ${{ env.RELEASE_CHANNEL == 'release' && secrets.APPLE_SIGNING_IDENTITY || '' }}
         run: npm run build:mac -- --skip-registration
-      - name: Notarize, staple, validate and archive
+      - name: Package the selected channel (notarize official releases)
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run package:mac -- --channel release
+        run: npm run package:mac -- --channel "$RELEASE_CHANNEL"
       - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.os }}
@@ -85,8 +94,60 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  native-preview:
+    if: (inputs.channel || 'preview') == 'preview'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            bundle: nsis
+          - os: ubuntu-22.04
+            platform: linux
+            bundle: deb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev pkg-config patchelf
+      - run: npm ci
+      - name: Validate source
+        shell: bash
+        run: |
+          npm run version:check -- "$RELEASE_TAG"
+          npm run licenses:check
+          npm run test:release
+          npm test
+          npm run format:check
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - name: Test GLib backport under optimization
+        if: runner.os == 'Linux'
+        run: cargo test --release --locked --manifest-path scripts/tests/glib-variant-probe/Cargo.toml
+      - name: Build native installer
+        run: npm run tauri -- build --bundles ${{ matrix.bundle }}
+      - name: Package experimental preview
+        run: node scripts/package-native-preview.mjs ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.platform }}
+          path: output/releases/*
+          if-no-files-found: error
+          retention-days: 30
+
   draft:
-    needs: macos
+    needs: [macos, native-preview]
+    if: always() && needs.macos.result == 'success' && (needs.native-preview.result == 'success' || needs.native-preview.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -107,14 +168,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view "$RELEASE_TAG" --json isDraft > "$RUNNER_TEMP/release.json"; then
+          if [ "$RELEASE_CHANNEL" = preview ]; then
+            preview_flag=--prerelease
+          else
+            preview_flag=--latest=false
+          fi
+          if gh release view "$RELEASE_TAG" --json isDraft,isPrerelease > "$RUNNER_TEMP/release.json"; then
             python3 - "$RUNNER_TEMP/release.json" <<'PY'
-          import json, sys
-          if not json.load(open(sys.argv[1]))['isDraft']:
+          import json, os, sys
+          release = json.load(open(sys.argv[1]))
+          if release['isPrerelease'] != (os.environ['RELEASE_CHANNEL'] == 'preview'):
+              raise SystemExit('A draft already exists for a different channel. Use a new version/tag.')
+          if not release['isDraft']:
               raise SystemExit('Refusing to replace assets of an already published release.')
           PY
             gh release upload "$RELEASE_TAG" release-assets/* --clobber
           else
             gh release create "$RELEASE_TAG" release-assets/* --draft --verify-tag \
-              --title "CodexDeck $RELEASE_TAG" --notes-file CHANGELOG.md
+              --title "CodexDeck $RELEASE_TAG ($RELEASE_CHANNEL)" "$preview_flag" \
+              --notes-file "docs/releases/$RELEASE_TAG.md"
           fi

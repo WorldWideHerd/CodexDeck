@@ -558,6 +558,8 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(windows)]
+    notification::initialize().expect("Could not initialize the Windows notification identity");
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show(app)
