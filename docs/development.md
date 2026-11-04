@@ -57,10 +57,10 @@ The macOS signing helper temporarily includes only the local signing keychain al
 
 ## Reporting connection check
 
-After deploying the companion server, run the built app executable with `--reporting-smoke-test`. This exits before normal app initialization and uses the production native HTTPS transport to check `/health`, `/ready`, and a temporary presence join/leave. It does not load local accounts or generate synthetic diagnostic records. Run it explicitly; ordinary startup never uses the probe to bypass consent.
+After deploying the companion server, run the built app executable with `--reporting-smoke-test`. This exits before normal app initialization and uses the production native HTTPS transport to check `/health`, `/ready`, and a temporary presence join/leave. It does not load local accounts or generate synthetic diagnostic records. Run it explicitly; ordinary startup never runs the probe or overrides a saved disabled preference.
 
 ```sh
 output/CodexDeck.app/Contents/MacOS/codexdeck --reporting-smoke-test
 ```
 
-The service must include `/v1/presence`; deploy server changes before distributing this app. Existing installations with no stored consent remain off and display the one-time choice. Keep reporting endpoints behind HTTPS with the real trusted Traefik CIDR configured on the server. Current clients do not send durable installation/launch metrics; the server's historical 7/30-day charts remain separate from its live count.
+The service must include `/v1/presence`; deploy server changes before distributing this app. Reporting defaults to on for new installations and missing/null legacy preferences, with no permission prompt. Existing explicit opt-outs stay off; users can change the setting under Usage & errors. Keep reporting endpoints behind HTTPS with the real trusted Traefik CIDR configured on the server. Current clients do not send durable installation/launch metrics; the server's historical 7/30-day charts remain separate from its live count.

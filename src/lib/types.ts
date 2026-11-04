@@ -59,6 +59,7 @@ export interface Settings {
   layout: "cards" | "list";
   sort: "manual" | "fiveHour" | "weekly" | "reset";
   pinned: boolean;
+  // Missing/null uses the enabled default; false preserves a saved opt-out.
   reportingConsent?: boolean | null;
 }
 export interface AppState {

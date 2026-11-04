@@ -24,4 +24,4 @@ macOS is locally validated. Windows/Linux runtime behavior remains unverified; o
 
 ## Optional reporting boundary
 
-The native reporter alone owns the fixed HTTPS service destination; the webview cannot send arbitrary URLs or payloads. Consent is nullable (not chosen / enabled / declined) and only explicit enabled permits transmission. Presence is process-local on both sides and the online dashboard updates without database writes. Error payloads use static operation/error categories and temporary random identifiers. See [Privacy](../PRIVACY.md) for the exact data and retention.
+The native reporter alone owns the fixed HTTPS service destination; the webview cannot send arbitrary URLs or payloads. The nullable reporting preference defaults to enabled for missing/null values; an explicit false remains disabled. There is no first-run prompt, and Settings exposes the off switch. Presence is process-local on both sides and the online dashboard updates without database writes. Error payloads use static operation/error categories and temporary random identifiers. See [Privacy](../PRIVACY.md) for the exact data and retention.

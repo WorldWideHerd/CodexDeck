@@ -16,7 +16,6 @@ import {
 } from "@/lib/presentation";
 import { MenubarPanel } from "@/components/menubar-panel";
 import { SettingsPanel } from "@/components/settings-panel";
-import { ReportingConsent } from "@/components/reporting-consent";
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
   ArrowDownUp,
@@ -60,7 +59,6 @@ import { AccountForm } from "@/components/account-form";
 export default function App() {
   const [state, setState] = useState<AppState>(emptyState),
     [ready, setReady] = useState(!native),
-    [reportingReady, setReportingReady] = useState(false),
     [error, setError] = useState<ErrorCode | null>(null),
     [busy, setBusy] = useState(false),
     [preview, setPreview] = useState(false),
@@ -157,7 +155,6 @@ export default function App() {
         if (!disposed) {
           setState(stateForPresentation(s));
           setCaps(c);
-          setReportingReady(true);
         }
       })
       .catch((e) => setError(errorCode(e)))
@@ -392,14 +389,6 @@ export default function App() {
           </div>
         </header>
         <div className="page-content">
-          {native && reportingReady && (
-            <ReportingConsent
-              consent={state.settings.reportingConsent}
-              fa={fa}
-              busy={busy}
-              onChoose={(reportingConsent) => settings({ reportingConsent })}
-            />
-          )}
           {!native && (
             <div className="notice">
               <Monitor size={18} />

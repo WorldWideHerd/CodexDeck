@@ -298,10 +298,7 @@ export function SettingsPanel({
           </p>
         </Section>
 
-        <Section
-          title={t("گزارش اختیاری", "Optional reporting")}
-          icon={<Hand />}
-        >
+        <Section title={t("آمار و خطاها", "Usage & errors")} icon={<Hand />}>
           <ReportingControl
             consent={state.settings.reportingConsent}
             fa={fa}
@@ -310,8 +307,8 @@ export function SettingsPanel({
           />
           <p>
             {t(
-              "با خاموش‌کردن، ارسال گزارش متوقف می‌شود. حذف از شمارش آنلاین ممکن است تا ۳ دقیقه طول بکشد.",
-              "Turning this off stops reporting. Removal from the online count may take up to 3 minutes.",
+              "پیش‌فرض روشن است. با خاموش‌کردن، ارسال گزارش متوقف می‌شود. حذف از شمارش آنلاین ممکن است تا ۳ دقیقه طول بکشد.",
+              "On by default. Turning this off stops reporting. Removal from the online count may take up to 3 minutes.",
             )}
           </p>
           <ReportingDetails fa={fa} />
@@ -335,8 +332,8 @@ export function SettingsPanel({
             </p>
             <p>
               {t(
-                "گزارش استفاده و خطا فقط با انتخاب شما فعال می‌شود. انتخاب شما در بخش گزارش اختیاری قابل تغییر است.",
-                "Usage and error reporting starts only with your permission. Change your choice under Optional reporting.",
+                "ارسال آمار و خطاها در بخش تنظیمات قابل خاموش‌کردن است.",
+                "You can turn reporting off under Usage & errors.",
               )}
             </p>
           </div>

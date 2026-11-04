@@ -6,7 +6,7 @@ A desktop app for monitoring usage across multiple Codex accounts. Built with Ta
 - Isolated account sign-in, encrypted account transfer and a menu bar panel.
 - Persian and English, light/dark themes and Persian/Gregorian calendars.
 - Original Codex/ChatGPT account switching in the signed macOS build.
-- Optional online-instance counts and predefined technical-error reports, off until you choose to enable them.
+- Limited online-instance counts and predefined technical-error reports, enabled by default and switchable off in Settings.
 
 macOS on Apple Silicon is the locally validated build. Intel macOS, Windows and Linux runtime support remains unverified.
 

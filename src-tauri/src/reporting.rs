@@ -48,10 +48,14 @@ pub struct Reporter {
     events: mpsc::Sender<Event>,
     finished: Arc<Notify>,
 }
+// A missing preference uses the enabled default; an explicit opt-out is retained.
+pub fn enabled(preference: Option<bool>) -> bool {
+    preference.unwrap_or(true)
+}
 impl Reporter {
     pub fn new(consent: Option<bool>) -> Self {
         let (control, rx) = watch::channel(Control {
-            enabled: consent == Some(true),
+            enabled: enabled(consent),
             generation: 1,
             stop: false,
         });
@@ -70,7 +74,7 @@ impl Reporter {
     }
     pub fn set_consent(&self, consent: Option<bool>) {
         self.control.send_if_modified(|c| {
-            let enabled = consent == Some(true);
+            let enabled = enabled(consent);
             if c.enabled == enabled {
                 return false;
             }
@@ -101,7 +105,7 @@ impl Reporter {
 
 struct Session {
     id: Uuid,
-    // Historical report protocol calls this install_id; it is random per consent
+    // Historical report protocol calls this install_id; it is random per reporting
     // session, not a device fingerprint or a persisted installation identifier.
     report_id: String,
     generation: u64,
@@ -325,18 +329,16 @@ pub async fn smoke_test() -> Result<(), String> {
 mod tests {
     use super::*;
     #[test]
-    fn reporting_requires_an_explicit_choice() {
-        for value in [
-            r#"{}"#,
-            r#"{"reportingConsent":null}"#,
-            r#"{"reportingConsent":false}"#,
+    fn reporting_defaults_on_and_preserves_explicit_opt_out() {
+        for (value, expected) in [
+            (r#"{}"#, true),
+            (r#"{"reportingConsent":null}"#, true),
+            (r#"{"reportingConsent":true}"#, true),
+            (r#"{"reportingConsent":false}"#, false),
         ] {
             let settings: crate::models::Settings = serde_json::from_str(value).unwrap();
-            assert_ne!(settings.reporting_consent, Some(true));
+            assert_eq!(enabled(settings.reporting_consent), expected);
         }
-        let settings: crate::models::Settings =
-            serde_json::from_str(r#"{"reportingConsent":true}"#).unwrap();
-        assert_eq!(settings.reporting_consent, Some(true));
     }
     #[test]
     fn identifiers_rotate_and_payload_contains_only_allowlisted_fields() {
@@ -458,9 +460,11 @@ mod tests {
             .unwrap()
             .unwrap()
     }
-    fn test_reporter() -> (Reporter, watch::Receiver<Control>, mpsc::Receiver<Event>) {
+    fn test_reporter(
+        preference: Option<bool>,
+    ) -> (Reporter, watch::Receiver<Control>, mpsc::Receiver<Event>) {
         let (control, rx) = watch::channel(Control {
-            enabled: false,
+            enabled: enabled(preference),
             generation: 1,
             stop: false,
         });
@@ -476,9 +480,51 @@ mod tests {
         )
     }
     #[tokio::test]
+    async fn default_reporting_starts_without_prompt_and_opt_out_stops_it() {
+        let (origin, mut received, server) = mock_server(false).await;
+        let (reporter, control, queue) = test_reporter(None);
+        let runner = tokio::spawn(async move {
+            run(
+                reqwest::Client::builder().no_proxy().build().unwrap(),
+                &origin,
+                control,
+                queue,
+                HEARTBEAT,
+            )
+            .await;
+        });
+        let (path, initial) = observed(&mut received).await;
+        assert_eq!(path, "/v1/presence");
+        assert_eq!(initial["online"], true);
+        // Saving unrelated settings with a legacy null preference must not rotate presence.
+        reporter.set_consent(None);
+        reporter.set_consent(Some(true));
+        assert!(
+            tokio::time::timeout(Duration::from_millis(80), received.recv())
+                .await
+                .is_err()
+        );
+        reporter.set_consent(Some(false));
+        let (_, removal) = observed(&mut received).await;
+        assert_eq!(removal["online"], false);
+        assert_eq!(removal["session_id"], initial["session_id"]);
+        reporter.record(Diagnostic::Refresh);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(80), received.recv())
+                .await
+                .is_err()
+        );
+        reporter.control.send_modify(|c| c.stop = true);
+        tokio::time::timeout(Duration::from_secs(2), runner)
+            .await
+            .unwrap()
+            .unwrap();
+        server.abort();
+    }
+    #[tokio::test]
     async fn network_reporting_is_gated_rotates_identity_and_discards_old_events() {
         let (origin, mut received, server) = mock_server(false).await;
-        let (reporter, control, queue) = test_reporter();
+        let (reporter, control, queue) = test_reporter(Some(false));
         let runner = tokio::spawn(async move {
             run(
                 reqwest::Client::builder().no_proxy().build().unwrap(),
@@ -545,7 +591,7 @@ mod tests {
     #[tokio::test]
     async fn withdrawal_interrupts_a_slow_request_instead_of_waiting_for_network_timeout() {
         let (origin, mut received, server) = mock_server(true).await;
-        let (reporter, control, queue) = test_reporter();
+        let (reporter, control, queue) = test_reporter(Some(false));
         let runner = tokio::spawn(async move {
             run(
                 reqwest::Client::builder()

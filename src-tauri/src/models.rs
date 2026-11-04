@@ -111,7 +111,7 @@ pub struct Settings {
     pub layout: String,
     pub sort: String,
     pub pinned: bool,
-    // None means the user has not chosen yet. Reporting requires explicit true.
+    // None uses the enabled default; Some(false) preserves an explicit opt-out.
     pub reporting_consent: Option<bool>,
 }
 impl Default for Settings {

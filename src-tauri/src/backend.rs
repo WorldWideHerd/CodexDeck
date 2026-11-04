@@ -58,7 +58,12 @@ impl Backend {
             saved.state.codex_executable = discovery::discover();
         }
         let (events, rx) = rpc::event_channel();
-        let reporting = crate::reporting::Reporter::new(saved.state.settings.reporting_consent);
+        // Unreadable settings must not discard a possibly saved opt-out.
+        let reporting = crate::reporting::Reporter::new(if storage_error.is_some() {
+            Some(false)
+        } else {
+            saved.state.settings.reporting_consent
+        });
         Ok((
             Arc::new(Self {
                 app,
@@ -475,7 +480,7 @@ impl Backend {
         }
         let consent = settings.reporting_consent;
         // Withdraw immediately; enabling waits for successful persistence below.
-        if consent != Some(true) {
+        if !crate::reporting::enabled(consent) {
             self.reporting.set_consent(consent);
         }
         self.saved.lock().await.state.settings = settings;

@@ -73,9 +73,9 @@ describe("settings panel", () => {
       "The update service is not connected in this version.",
     );
     expect(html).toContain(
-      "Usage and error reporting starts only with your permission.",
+      "You can turn reporting off under Usage &amp; errors.",
     );
-    expect(html).toContain('role="switch" aria-checked="false" disabled=""');
+    expect(html).toContain('role="switch" aria-checked="true" disabled=""');
     expect(html).toContain("without account details or chat content.");
     for (const label of ["Quit app", "Choose Codex CLI executable"]) {
       const action = buttons(html).find((button) => button.text === label);
