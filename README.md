@@ -19,7 +19,11 @@ macOS on Apple Silicon is the locally validated build. Intel macOS, Windows and 
 
 [![CodexDeck English dashboard in dark appearance](docs/images/dashboard-dark.jpg)](docs/images/dashboard-dark.jpg)
 
-Both screenshots show the English interface with synthetic accounts. They are rendered at 2× resolution; open an image to view it at full size.
+**Card view**
+
+[![CodexDeck English card view in dark appearance](docs/images/dashboard-cards.jpg)](docs/images/dashboard-cards.jpg)
+
+All screenshots show the English interface with synthetic accounts. They are rendered at 2× resolution; open an image to view it at full size.
 
 ## Downloads
 
