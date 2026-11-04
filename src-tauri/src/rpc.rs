@@ -111,8 +111,11 @@ impl Rpc {
             "analytics.enabled=false",
         ]);
         // The original app's storage mode has been validated by the signed Swift bridge.
-        // Respect that configuration; account homes always require the direct keyring.
+        // Respect the original app; managed macOS profiles use private auth.json files.
         if !original {
+            #[cfg(target_os = "macos")]
+            command.args(["-c", "cli_auth_credentials_store=\"file\""]);
+            #[cfg(not(target_os = "macos"))]
             command.args([
                 "-c",
                 "cli_auth_credentials_store=\"keyring\"",
@@ -391,7 +394,7 @@ mod transport_tests {
 import json,os,sys
 assert os.path.realpath(os.environ['CODEX_HOME'])==os.path.realpath(os.getcwd())
 assert all(k not in os.environ for k in ['OPENAI_API_KEY','CODEX_API_KEY','CODEX_ACCESS_TOKEN','OPENAI_BASE_URL','CODEX_ELECTRON_USER_DATA_PATH','CODEX_HOME_OVERRIDE'])
-assert 'cli_auth_credentials_store="keyring"' in sys.argv
+assert ('cli_auth_credentials_store="file"' if sys.platform=="darwin" else 'cli_auth_credentials_store="keyring"') in sys.argv
 assert 'analytics.enabled=false' in sys.argv
 ready=False
 
@@ -441,7 +444,7 @@ for line in sys.stdin:
     #[tokio::test]
     async fn original_home_reads_respect_config_without_forcing_keyring() {
         let (_dir, binary, home) = fixture();
-        let original_fixture = FIXTURE.replace("assert 'cli_auth_credentials_store=\"keyring\"' in sys.argv", "assert not any('cli_auth_credentials_store' in arg or 'auth_keyring_backend' in arg or 'forced_chatgpt_workspace_id' in arg for arg in sys.argv)");
+        let original_fixture = FIXTURE.replace("assert ('cli_auth_credentials_store=\"file\"' if sys.platform==\"darwin\" else 'cli_auth_credentials_store=\"keyring\"') in sys.argv", "assert not any('cli_auth_credentials_store' in arg or 'auth_keyring_backend' in arg or 'forced_chatgpt_workspace_id' in arg for arg in sys.argv)");
         std::fs::write(&binary, original_fixture).unwrap();
         let (tx, _rx) = event_channel();
         let rpc = Rpc::start_original(&binary, &home, "synthetic-original".into(), tx)

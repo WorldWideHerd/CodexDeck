@@ -1,5 +1,6 @@
 import { AccountTransfer } from "@/components/account-transfer";
 import { localizeDigits } from "@/lib/numbers";
+import { version as appVersion } from "../../package.json";
 import { capabilityMessage, presentError } from "@/lib/presentation";
 import {
   Bell,
@@ -301,7 +302,7 @@ export function SettingsPanel({
           <div>
             <div className="settings-version">
               <strong>CodexDeck</strong>
-              <span>{localizeDigits("0.1.0", fa)}</span>
+              <span>{localizeDigits(appVersion, fa)}</span>
             </div>
             <p>
               {t(
@@ -357,8 +358,8 @@ export function SettingsPanel({
             <p>
               <CircleHelp />
               {t(
-                "آستانهٔ هشدار سهمیه را از ویرایش حساب تنظیم کنید.",
-                "Set quota alert thresholds under Edit account.",
+                "آستانهٔ هشدار را از دکمهٔ زنگ یا گزینهٔ «تنظیم هشدار» در منوی حساب تنظیم کنید.",
+                "Set alert thresholds using the bell button or Set quota alert in the account menu.",
               )}
             </p>
           </div>
@@ -408,7 +409,7 @@ export function SettingsPanel({
           variant="ghost"
           className="settings-action"
           disabled={!native || busy}
-          title={t("اکانت‌ها ذخیره می‌مانند", "Accounts remain saved")}
+          title={t("حساب‌ها ذخیره می‌مانند", "Accounts remain saved")}
           onClick={() => void run(() => bridge.quit())}
         >
           <Power />

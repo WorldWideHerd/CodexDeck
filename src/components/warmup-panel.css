@@ -3,12 +3,32 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 16px;
   margin-block-end: 18px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--card);
+}
+.warmup-toolbar-copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.warmup-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-radius: 12px;
+}
+.warmup-toolbar-copy strong {
+  font-size: 13px;
 }
 .warmup-toolbar p,
 .warmup-hint {
@@ -16,56 +36,254 @@
   color: var(--muted-foreground);
   line-height: 1.8;
 }
-.warmup-dialog {
-  max-height: 85vh;
-  overflow-y: auto;
+.warmup-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.deck-dialog.warmup-dialog[role="dialog"] {
+  width: min(520px, calc(100vw - 32px));
+  max-width: 520px;
+  gap: 20px;
+  padding: 24px;
+}
+.warmup-dialog .warmup-header {
+  text-align: start;
+  padding-inline-end: 24px;
+  gap: 4px;
+}
+.warmup-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.warmup-header p,
+.warmup-notice {
+  line-height: 1.9;
+}
+.warmup-notice {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .warmup-accounts,
 .warmup-timing {
-  display: grid;
-  gap: 10px;
   min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.warmup-accounts legend,
+.warmup-timing legend {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  margin-block-end: 10px;
+}
+.warmup-accounts legend span {
+  float: inline-end;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 400;
 }
 .warmup-accounts {
-  max-height: 190px;
+  max-height: 220px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 .warmup-accounts label,
 .warmup-timing label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
+  cursor: pointer;
 }
-.warmup-accounts label span {
+.warmup-select-all {
+  padding: 8px 10px;
+  color: var(--muted-foreground);
+}
+.warmup-account {
+  padding: 10px;
+  border-block-start: 1px solid var(--border);
+  min-height: 48px;
+}
+.warmup-account:hover,
+.warmup-account:has(input:checked) {
+  background: var(--accent);
+}
+.warmup-account[data-disabled="true"] {
+  opacity: 0.6;
+  cursor: default;
+}
+.warmup-account > span {
+  flex: 1;
+  min-width: 0;
   overflow-wrap: anywhere;
+}
+.warmup-account small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.7;
 }
 .warmup-accounts input,
 .warmup-timing input[type="radio"] {
   accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
-.warmup-accounts legend,
-.warmup-timing legend {
-  font-size: 13px;
-  font-weight: 600;
-  margin-block-end: 10px;
+.warmup-timing {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.warmup-timing > label:not(.warmup-date) {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+}
+.warmup-timing > label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--accent);
 }
 .warmup-timing .warmup-date {
   display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.warmup-error {
+  grid-column: 1 / -1;
+  color: var(--destructive);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.warmup-toolbar > .warmup-error {
+  flex-basis: 100%;
+  color: var(--destructive);
+}
+.warmup-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 16px;
 }
 .warmup-results {
   display: grid;
-  gap: 10px;
-  border-block-start: 1px solid var(--border);
-  padding-block-start: 14px;
+  gap: 16px;
+  min-width: 0;
 }
-.warmup-results > div {
+.warmup-run-summary {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--muted);
+  line-height: 1.8;
+}
+.warmup-run-summary span,
+.warmup-run-summary small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.warmup-run-summary progress {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--primary);
+}
+.warmup-result-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.warmup-result-counts > div {
   display: grid;
   gap: 4px;
+  text-align: center;
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.warmup-result-counts strong {
+  font-size: 20px;
+  font-weight: 600;
+}
+.warmup-result-counts span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.warmup-result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.warmup-result-list li {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  border-block-start: 1px solid var(--border);
   overflow-wrap: anywhere;
 }
-.warmup-results small {
+.warmup-result-list li > div {
+  min-width: 0;
+}
+.warmup-result-icon {
   color: var(--muted-foreground);
-  line-height: 1.8;
+  padding-block-start: 2px;
+}
+.warmup-result-list [data-tone="success"] .warmup-result-icon {
+  color: var(--primary);
+}
+.warmup-result-list [data-tone="attention"] .warmup-result-icon {
+  color: var(--warning-foreground);
+}
+.warmup-result-list strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.warmup-result-list p,
+.warmup-result-list small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.9;
+  margin-block-start: 3px;
+}
+@keyframes warmup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.warmup-spinner {
+  animation: warmup-spin 1s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .warmup-spinner {
+    animation: none;
+  }
+}
+@media (max-width: 480px) {
+  .deck-dialog.warmup-dialog[role="dialog"] {
+    padding: 20px;
+  }
+  .warmup-timing {
+    grid-template-columns: 1fr;
+  }
+  .warmup-toolbar-actions {
+    width: 100%;
+  }
+  .warmup-toolbar-actions > button {
+    flex: 1;
+  }
 }

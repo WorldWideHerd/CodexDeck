@@ -4,7 +4,7 @@ import { dateLocale } from "@/lib/dates";
 import { LocalizedNumberInput } from "./localized-number-input";
 import { ColorPicker, colors } from "./color-picker";
 import { AccountRow } from "./account-row";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { PopupMenu } from "./ui/popup-menu";
 import "./account-popovers.css";
 import {
@@ -47,6 +47,7 @@ import { bridge, native } from "@/lib/bridge";
 import {
   buckets,
   countdown,
+  isStale,
   remaining,
   deadline,
   nextResetCreditExpiry,
@@ -113,6 +114,9 @@ export function AccountCard({
   }, [expanded]);
   const detailsId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const quickOpener = useRef<HTMLButtonElement | null>(null);
+  const stale = isStale(a, settings.refreshMinutes, now);
   const detailBuckets = buckets(a.snapshot)
     .map(
       ([id, bucket], index) =>
@@ -175,7 +179,8 @@ export function AccountCard({
   function closeMenu() {
     setMenuOpen(false);
   }
-  function openQuick(mode: "color" | "alert") {
+  function openQuick(mode: "color" | "alert", trigger: HTMLButtonElement) {
+    quickOpener.current = menuOpen ? menuTrigger.current : trigger;
     closeMenu();
     setQuickError(null);
     setQuickColor(a.color ?? colors[0]);
@@ -215,7 +220,7 @@ export function AccountCard({
                     : t("تنظیم هشدار", "Configure alert")
                 }
                 disabled={!native || busy}
-                onClick={() => openQuick("alert")}
+                onClick={(event) => openQuick("alert", event.currentTarget)}
               >
                 <Bell
                   size={14}
@@ -275,7 +280,7 @@ export function AccountCard({
             expanded={expanded}
             detailsId={detailsId}
             onDetails={onExpandedChange ?? (() => setLocalExpanded(!expanded))}
-            onAlert={() => openQuick("alert")}
+            onAlert={(trigger) => openQuick("alert", trigger)}
             caps={caps}
             run={run}
           />
@@ -323,8 +328,8 @@ export function AccountCard({
                   type="button"
                   className="account-avatar"
                   disabled={!native || busy}
-                  aria-label={t("تغییر رنگ اکانت", "Change account color")}
-                  onClick={() => openQuick("color")}
+                  aria-label={t("تغییر رنگ حساب", "Change account color")}
+                  onClick={(event) => openQuick("color", event.currentTarget)}
                 >
                   {a.label.slice(0, 1).toUpperCase()}
                 </button>
@@ -345,6 +350,7 @@ export function AccountCard({
                   className="account-menu"
                   contentClassName="account-action-popover"
                   open={menuOpen}
+                  triggerRef={menuTrigger}
                   onOpenChange={setMenuOpen}
                   label={t("عملیات حساب", "Account actions")}
                   trigger={<MoreHorizontal size={18} />}
@@ -353,7 +359,7 @@ export function AccountCard({
                   <Button
                     variant="ghost"
                     disabled={busy}
-                    onClick={() => openQuick("alert")}
+                    onClick={(event) => openQuick("alert", event.currentTarget)}
                   >
                     <Bell />
                     {t("تنظیم هشدار", "Set quota alert")}
@@ -372,7 +378,7 @@ export function AccountCard({
                   <Button
                     variant="ghost"
                     disabled={busy}
-                    onClick={() => openQuick("color")}
+                    onClick={(event) => openQuick("color", event.currentTarget)}
                   >
                     <Palette />
                     {t("رنگ کارت", "Card color")}
@@ -413,7 +419,7 @@ export function AccountCard({
                       void run(() => bridge.switch(a.id));
                     }}
                   >
-                    <RefreshCw />
+                    <ArrowRightLeft />
                     {t("استفاده در Codex", "Use in Codex")}
                   </Button>
                   {settings.sort === "manual" && (
@@ -476,6 +482,11 @@ export function AccountCard({
                     }
                   </span>
                 </div>
+                {settings.layout === "cards" && stale && (
+                  <p className="card-cache-note" role="status">
+                    {t("اطلاعات سهمیه قدیمی است.", "Quota data is outdated.")}
+                  </p>
+                )}
               </div>
               <div
                 className="account-quotas"
@@ -752,6 +763,14 @@ export function AccountCard({
           <DialogContent
             dir={fa ? "rtl" : "ltr"}
             className="quick-account-dialog"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              const target = quickOpener.current?.isConnected
+                ? quickOpener.current
+                : menuTrigger.current;
+              if (target?.isConnected && !target.closest("[inert]"))
+                target.focus({ preventScroll: true });
+            }}
           >
             <DialogHeader>
               <DialogTitle>

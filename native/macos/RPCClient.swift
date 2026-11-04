@@ -23,7 +23,7 @@ final class RPCClient {
             && credentialsStore == expectedStore
     }
 
-    init(executable: URL, home: URL, credentialsStore: String? = "keyring") {
+    init(executable: URL, home: URL, credentialsStore: String? = "file") {
         self.executable = executable
         self.home = home
         self.credentialsStore = credentialsStore

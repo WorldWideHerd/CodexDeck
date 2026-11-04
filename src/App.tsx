@@ -78,6 +78,7 @@ export default function App() {
   );
   const loginGeneration = useRef(0);
   const addAccountButton = useRef<HTMLButtonElement>(null);
+  const settingsButton = useRef<HTMLButtonElement>(null);
   const focusAfterDeletion = useRef(false);
   const pendingRemoval = useRef<Account | null>(null);
   const [desktopPhase, setDesktopPhase] = useState<DesktopSwitchPhase | null>(
@@ -382,7 +383,7 @@ export default function App() {
                 onClick={() => setEditor("new")}
               >
                 <Plus />
-                {t("افزودن اکانت", "Add account")}
+                {t("افزودن حساب", "Add account")}
               </Button>
             </div>
           </div>
@@ -695,8 +696,10 @@ export default function App() {
               variant="ghost"
               size="icon"
               className="footer-settings"
+              ref={settingsButton}
               aria-label={t("تنظیمات", "Settings")}
-              aria-pressed={settingsOpen}
+              aria-haspopup="dialog"
+              aria-expanded={settingsOpen}
               onClick={() => setSettingsOpen(true)}
             >
               <Settings />
@@ -712,6 +715,10 @@ export default function App() {
           dir={fa ? "rtl" : "ltr"}
           aria-labelledby="settings-title"
           aria-describedby={undefined}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            settingsButton.current?.focus({ preventScroll: true });
+          }}
         >
           <SettingsPanel
             state={state}

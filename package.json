@@ -8,10 +8,15 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "test:release": "node --test scripts/tests/version-checks.mjs",
     "tauri": "tauri",
     "format": "prettier --write src vite.config.ts",
     "format:check": "prettier --check src vite.config.ts",
-    "build:mac": "bash scripts/build-macos.sh"
+    "build:mac": "bash scripts/build-macos.sh",
+    "package:mac": "python3 scripts/package-macos.py output/CodexDeck.app",
+    "version": "node scripts/sync-version.mjs",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

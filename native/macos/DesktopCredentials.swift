@@ -168,14 +168,19 @@ struct DesktopCredentialStore {
     }
 
     func readSource(_ source: URL, expected: AccountProfile) throws -> Data {
-        guard let data = try keychain.read(service: Self.authService, account: Self.accountKey(for: source)),
-              Self.matches(data, profile: expected) else { throw DesktopSwitchError.invalidAccount }
+        let store = DesktopCredentialStore(home: source, keychain: keychain)
+        let file = source.appendingPathComponent("auth.json")
+        try store.rejectSymlink(file)
+        let data = try Data(contentsOf: file)
+        guard Self.matches(data, profile: expected) else { throw DesktopSwitchError.invalidAccount }
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
         return data
     }
 
     func syncSource(_ source: URL, credentials: Data, expected: AccountProfile) throws {
         guard Self.matches(credentials, profile: expected) else { return }
-        try keychain.write(credentials, service: Self.authService, account: Self.accountKey(for: source))
+        let store = DesktopCredentialStore(home: source, keychain: keychain)
+        try store.writeFile(credentials)
     }
 
     func snapshot(mode: DesktopAuthMode, previousAccountID: UUID?) throws -> DesktopAuthSnapshot {

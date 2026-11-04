@@ -121,6 +121,17 @@ body:has(.menubar-panel) #root {
   font-size: 12px;
   font-weight: 600;
 }
+.menubar-name-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.menubar-account-status {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--warning-foreground);
+}
 .menubar-account small {
   display: block;
   color: var(--muted-foreground);

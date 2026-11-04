@@ -140,3 +140,56 @@ it("keeps only one account expanded in the dashboard and supports rapid toggling
     vi.unstubAllGlobals();
   }
 });
+
+it("restores focus to settings after closing, including when opened by shortcut", async () => {
+  vi.stubGlobal("matchMedia", () => ({
+    matches: false,
+    addEventListener() {},
+    removeEventListener() {},
+  }));
+  const { default: App } = await import("@/App");
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  const settle = async () => {
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 5)));
+  };
+  try {
+    await act(async () => root.render(<App />));
+    const opener = host.querySelector<HTMLButtonElement>(".footer-settings")!;
+    expect(opener.getAttribute("aria-haspopup")).toBe("dialog");
+    await act(async () => opener.click());
+    await settle();
+    expect(document.querySelector(".settings-dialog")).not.toBeNull();
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>(".settings-popover-heading button")!
+        .click(),
+    );
+    await settle();
+    expect(document.activeElement).toBe(opener);
+    await act(async () =>
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: ",",
+          ctrlKey: true,
+          bubbles: true,
+        }),
+      ),
+    );
+    await settle();
+    expect(document.querySelector(".settings-dialog")).not.toBeNull();
+    await act(async () =>
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
+    );
+    await settle();
+    expect(document.querySelector(".settings-dialog")).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    vi.unstubAllGlobals();
+  }
+});

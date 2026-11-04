@@ -10,6 +10,7 @@ use ring::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+#[cfg(not(target_os = "macos"))]
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet},
@@ -71,6 +72,7 @@ pub trait Credentials {
 }
 pub struct SystemCredentials;
 impl SystemCredentials {
+    #[cfg(not(target_os = "macos"))]
     fn entry(home: &Path) -> Result<keyring::Entry, String> {
         let path = home.canonicalize().map_err(|_| STORE.to_string())?;
         let hash = format!("{:x}", Sha256::digest(path.to_string_lossy().as_bytes()));
@@ -78,72 +80,12 @@ impl SystemCredentials {
     }
 }
 impl Credentials for SystemCredentials {
-    fn read_many(
-        &self,
-        homes: &[std::path::PathBuf],
-        language: &str,
-    ) -> Result<Vec<Option<String>>, String> {
+    fn read(&self, home: &Path) -> Result<Option<String>, String> {
         #[cfg(target_os = "macos")]
         {
-            unsafe extern "C" {
-                fn codexdeck_export_credentials(
-                    accounts: *const std::ffi::c_char,
-                    language: *const std::ffi::c_char,
-                    buffer: *mut u8,
-                    capacity: i32,
-                ) -> i32;
-            }
-            let accounts = homes
-                .iter()
-                .map(|home| {
-                    let path = home.canonicalize().map_err(|_| STORE.to_string())?;
-                    let hash = format!("{:x}", Sha256::digest(path.to_string_lossy().as_bytes()));
-                    Ok(format!("cli|{}", &hash[..16]))
-                })
-                .collect::<Result<Vec<_>, String>>()?;
-            let request =
-                std::ffi::CString::new(serde_json::to_string(&accounts).map_err(|_| STORE)?)
-                    .map_err(|_| STORE)?;
-            let language = std::ffi::CString::new(language).map_err(|_| STORE)?;
-            let mut buffer = Zeroizing::new(vec![0u8; MAX_BYTES as usize]);
-            let length = unsafe {
-                codexdeck_export_credentials(
-                    request.as_ptr(),
-                    language.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len() as i32,
-                )
-            };
-            if length == -128 {
-                return Err("transferCancelled".into());
-            }
-            if length < 0 || length as usize > buffer.len() {
-                return Err(STORE.into());
-            }
-            let encoded: Vec<Option<String>> =
-                serde_json::from_slice(&buffer[..length as usize]).map_err(|_| STORE)?;
-            if encoded.len() != homes.len() {
-                return Err(STORE.into());
-            }
-            encoded
-                .into_iter()
-                .map(|value| {
-                    value
-                        .map(|value| {
-                            let bytes = B64.decode(value).map_err(|_| STORE)?;
-                            String::from_utf8(bytes).map_err(|_| STORE.to_string())
-                        })
-                        .transpose()
-                })
-                .collect()
+            return local_credentials(home);
         }
         #[cfg(not(target_os = "macos"))]
-        {
-            let _ = language;
-            homes.iter().map(|home| self.read(home)).collect()
-        }
-    }
-    fn read(&self, home: &Path) -> Result<Option<String>, String> {
         match Self::entry(home)?.get_password() {
             Ok(s) => Ok(Some(s)),
             Err(keyring::Error::NoEntry) => Ok(None),
@@ -151,16 +93,75 @@ impl Credentials for SystemCredentials {
         }
     }
     fn write(&self, home: &Path, value: Option<&str>) -> Result<(), String> {
-        let entry = Self::entry(home)?;
-        match value {
-            Some(s) => entry.set_password(s).map_err(|_| STORE.into()),
-            None => match entry.delete_credential() {
-                Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-                Err(_) => Err(STORE.into()),
-            },
+        #[cfg(target_os = "macos")]
+        {
+            return write_local_credentials(home, value);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let entry = Self::entry(home)?;
+            match value {
+                Some(s) => entry.set_password(s).map_err(|_| STORE.into()),
+                None => match entry.delete_credential() {
+                    Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+                    Err(_) => Err(STORE.into()),
+                },
+            }
         }
     }
 }
+
+// Managed macOS profiles use Codex's file backend directly.
+#[cfg(any(target_os = "macos", test))]
+fn local_credentials(home: &Path) -> Result<Option<String>, String> {
+    storage::private_dir(home)?;
+    let file = home.join("auth.json");
+    storage::reject_link(&file)?;
+    match std::fs::read_to_string(&file) {
+        Ok(value) => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600))
+                    .map_err(|_| STORE)?;
+            }
+            Ok(Some(value))
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(_) => Err(STORE.into()),
+    }
+}
+#[cfg(any(target_os = "macos", test))]
+fn write_local_credentials(home: &Path, value: Option<&str>) -> Result<(), String> {
+    storage::private_dir(home)?;
+    let file = home.join("auth.json");
+    storage::reject_link(&file)?;
+    if let Some(value) = value {
+        atomic_credential_file(home, &file, value.as_bytes())?;
+    }
+    if value.is_none() {
+        match std::fs::remove_file(&file) {
+            Ok(()) => (),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+            Err(_) => return Err(STORE.into()),
+        }
+    }
+    #[cfg(unix)]
+    std::fs::File::open(home)
+        .and_then(|f| f.sync_all())
+        .map_err(|_| STORE)?;
+    Ok(())
+}
+#[cfg(any(target_os = "macos", test))]
+fn atomic_credential_file(home: &Path, path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let mut temp = tempfile::NamedTempFile::new_in(home).map_err(|_| STORE)?;
+    temp.write_all(bytes)
+        .and_then(|_| temp.as_file().sync_all())
+        .map_err(|_| STORE)?;
+    temp.persist(path).map_err(|_| STORE)?;
+    Ok(())
+}
+
 fn aad(e: &Envelope) -> Result<Vec<u8>, String> {
     // Authenticate all format/algorithm parameters as well as the ciphertext.
     serde_json::to_vec(&(&e.format, e.version, &e.encryption)).map_err(|_| INVALID.into())
@@ -541,6 +542,34 @@ mod tests {
             }
             Ok(())
         }
+    }
+    #[test]
+    fn file_credentials_roundtrip_and_logout_stays_logged_out() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(local_credentials(dir.path()).unwrap().is_none());
+        write_local_credentials(dir.path(), Some("synthetic-secret")).unwrap();
+        assert_eq!(local_credentials(dir.path()).unwrap().as_deref(), Some("synthetic-secret"));
+        std::fs::remove_file(dir.path().join("auth.json")).unwrap();
+        assert!(local_credentials(dir.path()).unwrap().is_none());
+        write_local_credentials(dir.path(), Some("new-login")).unwrap();
+        write_local_credentials(dir.path(), None).unwrap();
+        assert!(local_credentials(dir.path()).unwrap().is_none());
+    }
+    #[cfg(unix)]
+    #[test]
+    fn file_credentials_are_private_and_reject_symlinks() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let dir = tempfile::tempdir().unwrap();
+        write_local_credentials(dir.path(), Some("synthetic")).unwrap();
+        assert_eq!(std::fs::metadata(dir.path()).unwrap().permissions().mode() & 0o777, 0o700);
+        assert_eq!(std::fs::metadata(dir.path().join("auth.json")).unwrap().permissions().mode() & 0o777, 0o600);
+        let target = dir.path().join("target");
+        std::fs::write(&target, "untouched").unwrap();
+        std::fs::remove_file(dir.path().join("auth.json")).unwrap();
+        symlink(&target, dir.path().join("auth.json")).unwrap();
+        assert!(write_local_credentials(dir.path(), Some("replacement")).is_err());
+        assert!(local_credentials(dir.path()).is_err());
+        assert_eq!(std::fs::read_to_string(target).unwrap(), "untouched");
     }
     #[test]
     fn capture_uses_one_batch_and_propagates_cancellation_without_individual_reads() {

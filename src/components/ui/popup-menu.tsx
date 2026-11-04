@@ -1,5 +1,5 @@
 import * as Popup from "@radix-ui/react-dialog";
-import { useRef, type ReactNode } from "react";
+import { useRef, type ReactNode, type Ref } from "react";
 
 // Non-modal menus stay in their parent so their position remains stable on scroll.
 export function PopupMenu({
@@ -10,6 +10,7 @@ export function PopupMenu({
   label,
   title,
   trigger,
+  triggerRef,
   children,
 }: {
   open: boolean;
@@ -19,6 +20,7 @@ export function PopupMenu({
   label: string;
   title?: string;
   trigger: ReactNode;
+  triggerRef?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -26,6 +28,7 @@ export function PopupMenu({
     <Popup.Root modal={false} open={open} onOpenChange={onOpenChange}>
       <div className={className} data-state={open ? "open" : "closed"}>
         <Popup.Trigger
+          ref={triggerRef}
           className="popup-menu-trigger"
           aria-label={label}
           title={title}

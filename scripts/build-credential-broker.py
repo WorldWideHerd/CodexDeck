@@ -38,8 +38,47 @@ def broker_requirement(parent):
     return result
 
 
+def architectures(binary):
+    values = tuple(sorted(run('/usr/bin/lipo', '-archs', str(binary)).split()))
+    if not values or len(set(values)) != len(values) or not set(values) <= {'arm64', 'x86_64'}:
+        raise ValueError('Unsupported macOS executable architecture.')
+    return values
+
+
+def app_architectures(app):
+    values = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
+    name = values.get('CFBundleExecutable', '')
+    if not name or Path(name).name != name:
+        raise ValueError('Invalid application executable name.')
+    return architectures(app / 'Contents/MacOS' / name)
+
+
+def cache_digest(descriptor, sources, archs):
+    # Preserve the existing arm64 cache and its exact signed Keychain identity.
+    content = descriptor + b''.join(source.read_bytes() for source in sources)
+    if archs != ('arm64',):
+        content += json.dumps(archs).encode()
+    return hashlib.sha256(content).hexdigest()
+
+
+def compile_broker(sources, executable, archs):
+    slices = []
+    for arch in archs:
+        target = executable if len(archs) == 1 else executable.with_name(executable.name + '-' + arch)
+        run('/usr/bin/swiftc', '-O', '-whole-module-optimization', '-suppress-warnings',
+            '-target', arch + '-apple-macosx13.0', '-module-name', 'CodexDeckCredentials',
+            '-module-cache-path', str(ROOT / '.build/swift-cache'),
+            *map(str, sources), '-o', str(target))
+        slices.append(target)
+    if len(slices) > 1:
+        run('/usr/bin/lipo', '-create', *map(str, slices), '-output', str(executable))
+        for path in slices:
+            path.unlink()
+
+
 def build(app):
     app = Path(app)
+    archs = app_architectures(app)
     parent = requirement(app)
     expected = broker_requirement(parent)
     sources = [ROOT / name for name in ['native/macos/CredentialBrokerProtocol.swift',
@@ -51,7 +90,7 @@ def build(app):
             'CredentialBrokerBuildPolicy': 'hardened-runtime-v1',
             'XPCService': XPC_SETTINGS}
     descriptor = plistlib.dumps(info, sort_keys=True)
-    digest = hashlib.sha256(descriptor + b''.join(source.read_bytes() for source in sources)).hexdigest()
+    digest = cache_digest(descriptor, sources, archs)
     cache = ROOT / '.local-data/credential-broker'
     cache.mkdir(parents=True, exist_ok=True, mode=0o700)
     if cache.is_symlink():
@@ -63,10 +102,7 @@ def build(app):
             executable = bundle / 'Contents/MacOS/CodexDeckCredentials'
             executable.parent.mkdir(parents=True)
             (bundle / 'Contents/Info.plist').write_bytes(descriptor)
-            run('/usr/bin/swiftc', '-O', '-whole-module-optimization', '-suppress-warnings',
-                '-target', 'arm64-apple-macosx13.0', '-module-name', 'CodexDeckCredentials',
-                '-module-cache-path', str(ROOT / '.build/swift-cache'),
-                *map(str, sources), '-o', str(executable))
+            compile_broker(sources, executable, archs)
             run('/usr/bin/python3', str(ROOT / 'scripts/sign-app.py'), str(bundle), '--identifier', IDENTIFIER)
             cached.parent.mkdir()
             shutil.move(str(bundle), cached)
@@ -76,6 +112,8 @@ def build(app):
         raise ValueError('The credential broker must use the hardened runtime.')
     if plistlib.loads((cached / 'Contents/Info.plist').read_bytes()) != info:
         raise ValueError('The credential broker cache does not match its source configuration.')
+    if architectures(cached / 'Contents/MacOS/CodexDeckCredentials') != archs:
+        raise ValueError('The credential broker architecture does not match the main application.')
     destination = app / 'Contents/XPCServices/CodexDeckCredentials.xpc'
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists():

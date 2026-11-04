@@ -294,6 +294,72 @@ describe("quick account saves", () => {
   });
 });
 
+describe("quick dialog focus", () => {
+  it.each(["color", "card alert", "row alert", "menu alert"])(
+    "returns to the opening control after closing %s",
+    async (source) => {
+      if (source === "row alert")
+        await renderCard(undefined, false, {}, "list");
+      const selector =
+        source === "color"
+          ? ".account-avatar"
+          : source === "card alert"
+            ? '[aria-label="Configure quota alert"]'
+            : source === "row alert"
+              ? ".row-notification"
+              : ".account-menu > button";
+      const opener = host.querySelector<HTMLButtonElement>(selector)!;
+      await click(opener);
+      if (source === "menu alert") await click(button("Set quota alert"));
+      expect(document.querySelector(".quick-account-dialog")).not.toBeNull();
+      await act(async () => {
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+      });
+      await settle();
+      expect(document.querySelector(".quick-account-dialog")).toBeNull();
+      expect(document.activeElement).toBe(opener);
+    },
+  );
+});
+
+describe("card data freshness", () => {
+  it("marks outdated quota data without changing connection status or the reported values, then clears on fresh data", async () => {
+    const before = [...host.querySelectorAll('[role="progressbar"]')].map(
+      (bar) => bar.getAttribute("aria-valuenow"),
+    );
+    await renderCard(undefined, false, {
+      status: "connected",
+      updatedAt: Date.now() / 1000 - 360,
+    });
+    expect(host.querySelector(".card-cache-note")?.textContent).toContain(
+      "Quota data is outdated",
+    );
+    expect(host.querySelector(".account-tags .status")?.textContent).toBe(
+      "Connected",
+    );
+    expect(
+      [...host.querySelectorAll('[role="progressbar"]')].map((bar) =>
+        bar.getAttribute("aria-valuenow"),
+      ),
+    ).toEqual(before);
+    await renderCard(undefined, false, { updatedAt: Date.now() / 1000 });
+    expect(host.querySelector(".card-cache-note")).toBeNull();
+  });
+
+  it("keeps sign-in status distinct from outdated quota data", async () => {
+    await renderCard(undefined, false, { status: "needsLogin" });
+    expect(host.querySelector(".account-tags .status")?.textContent).toBe(
+      "Sign in required",
+    );
+    expect(host.querySelector(".card-cache-note")).not.toBeNull();
+    await renderCard(undefined, false, { snapshot: null, updatedAt: null });
+    expect(host.querySelector(".card-cache-note")).toBeNull();
+    expect(host.querySelector(".no-usage")).not.toBeNull();
+  });
+});
+
 describe("missing quota reports", () => {
   it.each([
     [

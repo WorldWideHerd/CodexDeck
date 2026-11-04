@@ -11,11 +11,15 @@ Run commands from the repository root. Prerequisites are listed in the [README](
 | `npm run build`          | Type-check and build the frontend into `dist/`             |
 | `npm run tauri -- build` | Build and package for the current platform                 |
 | `npm run build:mac`      | Build, sign and publish the local macOS app into `output/` |
+| `npm run package:mac`    | Package a complete signed app as a preview ZIP, checksum and manifest |
+| `npm run version:check`  | Check that application versions and lockfiles agree |
 
 ## Checks
 
 ```sh
 npm test
+npm run test:release
+npm run version:check
 npm run format:check
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
@@ -24,10 +28,13 @@ On macOS, also run the build-tool checks and complete app build:
 
 ```sh
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+bash scripts/test-desktop-quit.sh
 npm run build:mac
 ```
 
 The [CI workflow](../.github/workflows/ci.yml) defines macOS, Windows and Linux checks. Its configuration alone does not establish support on those platforms.
+
+macOS checks build and package the complete signed app, including the credential broker. Windows/Linux checks build installers. See the [release guide](releasing.md) for architecture selection, GitHub artifacts, version updates and the separate notarized release workflow.
 
 ## macOS signing
 

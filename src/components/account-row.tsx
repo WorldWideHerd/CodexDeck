@@ -37,7 +37,7 @@ export function AccountRow({
   expanded: boolean;
   detailsId: string;
   onDetails: () => void;
-  onAlert: () => void;
+  onAlert: (trigger: HTMLButtonElement) => void;
   caps: PlatformCapabilities;
   run: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
@@ -190,7 +190,7 @@ export function AccountRow({
                 )
               : t("تنظیم اعلان سهمیه", "Configure quota notifications")
           }
-          onClick={onAlert}
+          onClick={(event) => onAlert(event.currentTarget)}
         >
           <Bell />
           {a.alertThreshold !== null && <i aria-hidden="true" />}

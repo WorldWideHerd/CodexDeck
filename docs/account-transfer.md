@@ -2,7 +2,7 @@
 
 In **Settings → Account transfer & backup**, enter a password of at least 10 characters to export an encrypted JSON file. To import, choose the file and enter its password. Passwords cannot be recovered.
 
-Archives contain account metadata, settings, cached usage and complete sign-in credentials. Treat them as sensitive. Export stops if a previously connected account's credentials cannot be read. On macOS, the OS may request authentication or Keychain access.
+Archives contain account metadata, settings, cached usage and complete sign-in credentials. Treat them as sensitive. Export stops if a previously connected account's credentials cannot be read. On macOS, exports read the private credential files.
 
 Import adds new accounts and skips existing email/workspace combinations. Imported settings are restored, but the destination's selected Codex executable is retained. OS notification permission and the original desktop app's login are not transferred. Switch away from or restore an active original account before transferring. Expired sessions may require signing in again.
 

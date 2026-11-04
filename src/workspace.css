@@ -31,6 +31,10 @@
   --secondary-foreground: #a0dece;
   --destructive: #ff8ba0;
 }
+html,
+body {
+  overscroll-behavior: none;
+}
 body {
   font-size: 13px;
 }
@@ -51,23 +55,29 @@ button:active:not(:disabled) {
   top: 0;
   z-index: 30;
   width: 100%;
-  padding: 14px 32px 10px;
+  padding: 0;
   background: var(--background);
-  border-bottom: 0;
-  max-width: 1164px;
-  margin: auto;
+  border-bottom: 1px solid var(--border);
 }
-.header-row {
-  margin-bottom: 10px;
-  min-height: 36px;
+.deck-header .header-row {
+  width: 100%;
+  max-width: 1164px;
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 12px 32px;
+  flex-wrap: nowrap;
+  gap: 16px;
 }
 .deck-logo {
+  flex-shrink: 0;
   width: 36px;
   height: 36px;
   border-radius: 10px;
 }
 .deck-brand {
+  min-width: 0;
   gap: 11px;
+  white-space: nowrap;
 }
 .deck-brand strong {
   font-size: 19px;
@@ -77,8 +87,13 @@ button:active:not(:disabled) {
   font-size: 11px;
   margin-top: 1px;
 }
-.header-controls {
+.deck-header .header-controls {
+  flex: 0 0 auto;
+  width: auto;
   gap: 8px;
+}
+.deck-header .add-account {
+  white-space: nowrap;
 }
 .header-controls button[aria-pressed="true"] {
   background: var(--secondary);
@@ -384,8 +399,8 @@ button:active:not(:disabled) {
   }
 }
 @media (max-width: 650px) {
-  .deck-header {
-    padding: 20px 16px 12px;
+  .deck-header .header-row {
+    padding-inline: 16px;
   }
   .page-content {
     padding: 10px 16px 32px;
@@ -1300,11 +1315,11 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
   .deck-header {
-    padding: 12px 16px 10px;
+    padding: 0;
   }
-  .header-row {
-    gap: 10px;
-    margin-bottom: 8px;
+  .deck-header .header-row {
+    min-height: 60px;
+    gap: 12px;
   }
   .page-content {
     padding-top: 10px;
@@ -1697,9 +1712,6 @@ body {
 }
 
 /* Dashboard hierarchy and readable inline account information. */
-.deck-header .header-row {
-  margin-bottom: 0;
-}
 .page-content > .deck-toolbar {
   margin-block: -4px 18px;
   padding: 0;

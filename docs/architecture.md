@@ -17,6 +17,6 @@
 
 Events update state (`state-changed`), login (`login-changed`), switching (`desktop-switch-progress`) and scheduled prompts (`warmup-changed`). The frontend uses capability flags to enable platform-specific operations. User-facing errors are localized through `src/lib/presentation.ts`.
 
-Isolated accounts use separate CLI homes and the OS credential store. macOS original-account switching uses a Swift transaction and a signed XPC broker; keep bundle identifiers and signing identity stable. Archive credentials stay native to the [transfer implementation](account-transfer.md).
+Isolated accounts use separate CLI homes. On macOS, credentials use private, owner-only `auth.json` files; other platforms use the OS credential store. macOS original-account switching uses a Swift transaction and a signed XPC broker; keep bundle identifiers and signing identity stable. Archive credentials stay native to the [transfer implementation](account-transfer.md).
 
 macOS is locally validated. Windows/Linux runtime behavior remains unverified; original-account switching is unavailable there. Notification availability depends on native readiness and OS permissions.

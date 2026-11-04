@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { Clock3, Play } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  ListChecks,
+  LoaderCircle,
+  Play,
+  Plus,
+} from "lucide-react";
 import { bridge, native } from "@/lib/bridge";
 import { dateLocale } from "@/lib/dates";
 import type { Account, Settings, WarmupJob } from "@/lib/types";
@@ -18,10 +26,7 @@ export function warmupLabel(status: string, fa: boolean) {
   const labels: Record<string, [string, string]> = {
     pending: ["در انتظار اجرا", "Scheduled"],
     running: ["در حال اجرا", "Running"],
-    complete: [
-      "پایان بررسی؛ نتیجهٔ هر اکانت را ببینید",
-      "Finished — check each account’s result",
-    ],
+    complete: ["اجرا پایان یافت", "Run finished"],
     cancelled: ["لغو شد", "Cancelled"],
     missed: ["موعد گذشت؛ اجرا نشد", "Missed — no catch-up send"],
     interrupted: [
@@ -45,14 +50,19 @@ export function warmupLabel(status: string, fa: boolean) {
     ],
     failed: ["بررسی یا درخواست ناموفق بود", "Check or request failed"],
     needsLogin: ["نیازمند ورود", "Sign in required"],
-    busy: ["اکانت مشغول بود؛ اجرا نشد", "Account busy — skipped"],
-    removed: ["اکانت حذف شده؛ اجرا نشد", "Account removed — skipped"],
+    busy: ["حساب مشغول بود؛ اجرا نشد", "Account busy — skipped"],
+    removed: ["حساب حذف شده؛ اجرا نشد", "Account removed — skipped"],
     unknown: [
       "وضعیت پنج‌ساعته مشخص نیست؛ ارسال نشد",
       "Five-hour state unknown — skipped",
     ],
   };
   return (labels[status] ?? ["وضعیت نامشخص", "Unknown status"])[fa ? 0 : 1];
+}
+function resultTone(status: string) {
+  if (["confirmed", "alreadyActive"].includes(status)) return "success";
+  if (["queued", "sending", "cancelled"].includes(status)) return "neutral";
+  return "attention";
 }
 function defaultTime() {
   const date = new Date(Date.now() + 5 * 60_000);
@@ -70,15 +80,41 @@ export function WarmupPanel({
   calendar: Settings["calendar"];
 }) {
   const t = (f: string, e: string) => (fa ? f : e);
+  const [view, setView] = useState<"setup" | "results">("setup");
+  const opener = useRef<HTMLButtonElement | null>(null);
+  const title = useRef<HTMLHeadingElement | null>(null);
   const [open, setOpen] = useState(false),
     [job, setJob] = useState<WarmupJob | null>(null);
   const [ids, setIds] = useState<string[]>([]),
     [scheduled, setScheduled] = useState(false);
   const [time, setTime] = useState(defaultTime),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(false);
+    [error, setError] = useState<"load" | "time" | "start" | "cancel" | null>(
+      null,
+    );
   const available = accounts.filter((a) => a.status === "connected");
   const occupied = job?.status === "pending" || job?.status === "running";
+  const showingResults = !!job && (view === "results" || occupied);
+  const number = (n: number) =>
+    new Intl.NumberFormat(fa ? "fa-IR" : "en-US").format(n);
+  const accountCount = (n: number) =>
+    t(`${number(n)} حساب`, `${number(n)} ${n === 1 ? "account" : "accounts"}`);
+  const finished =
+    job?.rows.filter((r) => !["queued", "sending"].includes(r.status)).length ??
+    0;
+  function setup() {
+    setIds(available.map((a) => a.id));
+    setScheduled(false);
+    setTime(defaultTime());
+    setError(null);
+    setView("setup");
+  }
+  const resultTitle =
+    job?.status === "pending"
+      ? t("زمان‌بندی شروع", "Scheduled start")
+      : job?.status === "running"
+        ? t("پیشرفت اجرا", "Run progress")
+        : t("نتیجهٔ اجرا", "Run results");
   const date = (n: number) =>
     new Date(n * 1000).toLocaleString(dateLocale(fa, calendar), {
       dateStyle: "medium",
@@ -92,7 +128,10 @@ export function WarmupPanel({
     void bridge
       .subscribeWarmup((j) => {
         changed = true;
-        if (!disposed) setJob(j);
+        if (!disposed) {
+          setJob(j);
+          if (["pending", "running"].includes(j.status)) setView("results");
+        }
       })
       .then(async (cleanup) => {
         if (disposed) {
@@ -101,16 +140,23 @@ export function WarmupPanel({
         }
         off = cleanup;
         const j = await bridge.warmup();
-        if (!disposed && !changed) setJob(j);
+        if (!disposed && !changed) {
+          setJob(j);
+          if (j && ["pending", "running"].includes(j.status))
+            setView("results");
+        }
       })
       .catch(() => {
-        if (!disposed) setError(true);
+        if (!disposed) setError("load");
       });
     return () => {
       disposed = true;
       off?.();
     };
   }, []);
+  useEffect(() => {
+    if (open) title.current?.focus();
+  }, [view, open]);
   async function start() {
     const at = scheduled ? new Date(time).getTime() / 1000 : null;
     if (
@@ -120,27 +166,28 @@ export function WarmupPanel({
         at < Date.now() / 1000 + 5 ||
         at > Date.now() / 1000 + 30 * 86400)
     ) {
-      setError(true);
+      setError("time");
       return;
     }
     setBusy(true);
-    setError(false);
+    setError(null);
     try {
       setJob(await bridge.startWarmup(ids, at));
+      setView("results");
     } catch {
-      setError(true);
+      setError("start");
     } finally {
       setBusy(false);
     }
   }
   async function cancel() {
     setBusy(true);
-    setError(false);
+    setError(null);
     try {
       await bridge.cancelWarmup();
       setJob(await bridge.warmup());
     } catch {
-      setError(true);
+      setError("cancel");
     } finally {
       setBusy(false);
     }
@@ -151,57 +198,107 @@ export function WarmupPanel({
       className="warmup-toolbar"
       aria-label={t("شروع پنجرهٔ مصرف", "Start usage window")}
     >
-      <div>
-        <strong>{t("شروع پنجرهٔ مصرف", "Start usage window")}</strong>
-        <p role="status" aria-live="polite">
-          {job
-            ? warmupLabel(job.status, fa)
-            : !available.length
-              ? t("ابتدا یک حساب متصل کنید", "Connect an account first")
-              : t(
-                  "ارسال یک پیام کوتاه، همین حالا یا در زمان مشخص",
-                  "Send a short message now or at a scheduled time",
-                )}
-          {occupied && job && (
-            <>
-              {" "}
-              · {job.at ? date(job.at) : t("همین حالا", "Now")} ·{" "}
-              {new Intl.NumberFormat(fa ? "fa-IR" : "en-US").format(
-                job.rows.length,
-              )}{" "}
-              {t("حساب", "accounts")}
-            </>
+      <div className="warmup-toolbar-copy">
+        <span className="warmup-feature-icon" aria-hidden="true">
+          <Clock3 size={20} />
+        </span>
+        <div>
+          <strong>{t("پنجرهٔ پنج‌ساعته", "Five-hour window")}</strong>
+          <p role="status" aria-live="polite">
+            {job ? (
+              <>
+                {warmupLabel(job.status, fa)} · {accountCount(job.rows.length)}
+                {occupied && job.at ? ` · ${date(job.at)}` : ""}
+              </>
+            ) : !available.length ? (
+              t("ابتدا یک حساب متصل کنید", "Connect an account first")
+            ) : (
+              t(
+                "شروع مصرف با یک پیام کوتاه، اکنون یا در زمان دلخواه",
+                "Start with a short message, now or at a scheduled time",
+              )
+            )}
+          </p>
+        </div>
+      </div>
+      <div className="warmup-toolbar-actions">
+        {job && (
+          <Button
+            variant="outline"
+            aria-haspopup="dialog"
+            onClick={(e) => {
+              opener.current = e.currentTarget;
+              setView("results");
+              setError(null);
+              setOpen(true);
+            }}
+          >
+            <ListChecks size={16} />
+            {job.status === "pending"
+              ? t("مشاهدهٔ برنامه", "View schedule")
+              : job.status === "running"
+                ? t("مشاهدهٔ پیشرفت", "View progress")
+                : t("مشاهدهٔ نتیجه", "View results")}
+          </Button>
+        )}
+        {!occupied && (
+          <Button
+            disabled={!available.length}
+            aria-haspopup="dialog"
+            onClick={(e) => {
+              opener.current = e.currentTarget;
+              setup();
+              setOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            {job ? t("اجرای جدید", "New run") : t("تنظیم شروع", "Set up start")}
+          </Button>
+        )}
+      </div>
+      {error === "load" && !open && (
+        <p className="warmup-error" role="alert">
+          {t(
+            "وضعیت اجرا دریافت نشد. اتصال را بررسی و برنامه را دوباره باز کنید.",
+            "Could not load the run. Check your connection and reopen the app.",
           )}
         </p>
-      </div>
-      <Button
-        disabled={!job && !available.length}
-        variant="outline"
-        onClick={() => {
-          setIds(available.map((a) => a.id));
-          setOpen(true);
-        }}
-      >
-        <Clock3 size={16} />
-        {job?.status === "pending"
-          ? t("مشاهدهٔ برنامه", "View schedule")
-          : job?.status === "running"
-            ? t("مشاهدهٔ پیشرفت", "View progress")
-            : job
-              ? t("مشاهدهٔ نتیجه", "View results")
-              : t("شروع / زمان‌بندی", "Start / schedule")}
-      </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent dir={fa ? "rtl" : "ltr"} className="warmup-dialog">
-          <DialogHeader>
-            <DialogTitle>
-              {t("شروع پنجرهٔ پنج‌ساعته", "Start five-hour window")}
+        <DialogContent
+          dir={fa ? "rtl" : "ltr"}
+          className="warmup-dialog"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            title.current?.focus();
+          }}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            const target = opener.current?.isConnected
+              ? opener.current
+              : document.querySelector<HTMLButtonElement>(
+                  ".warmup-toolbar-actions button",
+                );
+            target?.focus();
+          }}
+        >
+          <DialogHeader className="warmup-header">
+            <span className="warmup-eyebrow">
+              {t("پنجرهٔ پنج‌ساعته", "Five-hour window")}
+            </span>
+            <DialogTitle ref={title} tabIndex={-1}>
+              {showingResults ? resultTitle : t("تنظیم شروع", "Set up start")}
             </DialogTitle>
             <DialogDescription>
-              {t(
-                "برای هر اکانت انتخاب‌شده یک پیام «فقط بنویس OK» ارسال می‌شود و مقداری سهمیه مصرف می‌کند. اکانت‌های از قبل فعال رد می‌شوند؛ شروع پنجره به تأیید سرور بستگی دارد.",
-                "Each selected account receives ‘Reply only OK.’ This consumes some quota. Already-active accounts are skipped; activation depends on server confirmation.",
-              )}
+              {showingResults
+                ? t(
+                    "وضعیت هر حساب را در ادامه ببینید. دریافت پاسخ به‌تنهایی به معنی فعال‌شدن پنجره نیست.",
+                    "Check each account below. A reply alone does not confirm an active window.",
+                  )
+                : t(
+                    "حساب‌ها و زمان ارسال پیام را انتخاب کنید.",
+                    "Choose the accounts and when to send a short message.",
+                  )}
             </DialogDescription>
           </DialogHeader>
           {!native && (
@@ -212,12 +309,33 @@ export function WarmupPanel({
               )}
             </p>
           )}
-          {!occupied && (
+          {!showingResults && (
             <>
+              <p className="warmup-notice">
+                {t(
+                  "این پیام مقداری از سهمیه را مصرف می‌کند. برای حساب‌هایی که پنجرهٔ مصرفشان فعال است، پیامی ارسال نمی‌شود. شروع پنجره باید از سمت سرور تأیید شود.",
+                  "This uses some quota. Accounts with an active usage window receive no message. The server must confirm the window has started.",
+                )}
+              </p>
               <fieldset className="warmup-accounts" disabled={busy || !native}>
-                <legend>{t("انتخاب اکانت‌ها", "Select accounts")}</legend>
-                <label>
+                <legend>
+                  {t("انتخاب حساب‌ها", "Select accounts")}{" "}
+                  <span>
+                    {t(
+                      `${number(ids.length)} انتخاب‌شده`,
+                      `${number(ids.length)} selected`,
+                    )}
+                  </span>
+                </legend>
+                <label className="warmup-select-all">
                   <input
+                    ref={(node) => {
+                      if (node)
+                        node.indeterminate =
+                          available.some((a) => ids.includes(a.id)) &&
+                          !available.every((a) => ids.includes(a.id));
+                    }}
+                    disabled={!available.length}
                     type="checkbox"
                     checked={
                       available.length > 0 &&
@@ -227,10 +345,14 @@ export function WarmupPanel({
                       setIds(e.target.checked ? available.map((a) => a.id) : [])
                     }
                   />
-                  {t("همهٔ اکانت‌های متصل", "All connected accounts")}
+                  {t("همهٔ حساب‌های متصل", "All connected accounts")}
                 </label>
                 {accounts.map((a) => (
-                  <label key={a.id}>
+                  <label
+                    key={a.id}
+                    className="warmup-account"
+                    data-disabled={a.status !== "connected"}
+                  >
                     <input
                       type="checkbox"
                       disabled={a.status !== "connected"}
@@ -243,12 +365,27 @@ export function WarmupPanel({
                         )
                       }
                     />
-                    <span>{a.label}</span>
+                    <span>
+                      <bdi>{a.label}</bdi>
+                      {a.email && (
+                        <small>
+                          <bdi>{a.email}</bdi>
+                        </small>
+                      )}
+                    </span>
                     {a.status !== "connected" && (
                       <small>{t("ابتدا متصل شوید", "Connect first")}</small>
                     )}
                   </label>
                 ))}
+                {!available.length && (
+                  <p className="warmup-hint">
+                    {t(
+                      "برای شروع، دست‌کم یک حساب متصل لازم است.",
+                      "Connect at least one account to start.",
+                    )}
+                  </p>
+                )}
               </fieldset>
               <fieldset className="warmup-timing" disabled={busy || !native}>
                 <legend>{t("زمان اجرا", "When to run")}</legend>
@@ -257,7 +394,10 @@ export function WarmupPanel({
                     type="radio"
                     name="warmup-time"
                     checked={!scheduled}
-                    onChange={() => setScheduled(false)}
+                    onChange={() => {
+                      setScheduled(false);
+                      setError(null);
+                    }}
                   />
                   {t("همین حالا", "Now")}
                 </label>
@@ -266,7 +406,10 @@ export function WarmupPanel({
                     type="radio"
                     name="warmup-time"
                     checked={scheduled}
-                    onChange={() => setScheduled(true)}
+                    onChange={() => {
+                      setScheduled(true);
+                      setError(null);
+                    }}
                   />
                   {t("یک‌بار در زمان مشخص", "Once at a scheduled time")}
                 </label>
@@ -280,70 +423,203 @@ export function WarmupPanel({
                       dir="ltr"
                       type="datetime-local"
                       value={time}
-                      onChange={(e) => setTime(e.target.value)}
+                      aria-invalid={error === "time"}
+                      aria-describedby={
+                        error === "time" ? "warmup-time-error" : undefined
+                      }
+                      onChange={(e) => {
+                        setTime(e.target.value);
+                        if (error === "time") setError(null);
+                      }}
                     />
                   </label>
                 )}
-              </fieldset>
-              <p className="warmup-hint">
-                {t(
-                  "برای زمان‌بندی، اپ باید باز و سیستم بیدار و آنلاین باشد. موعدهای ازدست‌رفته و ارسال‌های نامشخص خودکار تکرار نمی‌شوند. زمان را حداکثر تا ۳۰ روز آینده انتخاب کنید.",
-                  "For scheduled runs, keep the app open and the computer awake and online. Missed schedules and uncertain sends are not retried automatically. Choose a time within 30 days.",
+                {error === "time" && (
+                  <p
+                    id="warmup-time-error"
+                    className="warmup-error"
+                    role="alert"
+                  >
+                    {t(
+                      "زمانی از ۵ ثانیه تا ۳۰ روز آینده انتخاب کنید.",
+                      "Choose a time from 5 seconds to 30 days in the future.",
+                    )}
+                  </p>
                 )}
-              </p>
-              <Button
-                disabled={
-                  busy ||
-                  !native ||
-                  ids.length === 0 ||
-                  ids.some((id) => !available.some((a) => a.id === id))
-                }
-                onClick={() => void start()}
-              >
-                <Play size={16} />
-                {busy
-                  ? t("در حال ثبت…", "Saving…")
-                  : scheduled
-                    ? t("ثبت زمان‌بندی", "Schedule")
-                    : t(
-                        "ارسال به اکانت‌های انتخاب‌شده",
-                        "Send to selected accounts",
-                      )}
-              </Button>
-            </>
-          )}
-          {job && (
-            <section className="warmup-results" aria-live="polite">
-              <strong>{warmupLabel(job.status, fa)}</strong>
-              {job.at && <p>{date(job.at)}</p>}
-              {job.rows.map((r) => (
-                <div key={r.accountId}>
-                  <span>{r.label}</span>
-                  <small>
-                    {warmupLabel(r.status, fa)}
-                    {r.resetsAt
-                      ? ` · ${t("ریست:", "Reset:")} ${date(r.resetsAt)}`
-                      : ""}
-                  </small>
-                </div>
-              ))}
-              {job.status === "pending" && (
+              </fieldset>
+              {scheduled && (
+                <p className="warmup-hint">
+                  {t(
+                    "برای زمان‌بندی، اپ باید باز و سیستم بیدار و آنلاین باشد. موعدهای ازدست‌رفته و ارسال‌های نامشخص خودکار تکرار نمی‌شوند. زمان را حداکثر تا ۳۰ روز آینده انتخاب کنید.",
+                    "For scheduled runs, keep the app open and the computer awake and online. Missed schedules and uncertain sends are not retried automatically. Choose a time within 30 days.",
+                  )}
+                </p>
+              )}
+              <div className="warmup-actions">
                 <Button
                   variant="outline"
-                  disabled={busy || !native}
-                  onClick={() => void cancel()}
+                  disabled={busy}
+                  onClick={() => setOpen(false)}
                 >
-                  {t("لغو زمان‌بندی", "Cancel schedule")}
+                  {t("بستن", "Close")}
                 </Button>
-              )}
-            </section>
+                <Button
+                  disabled={
+                    busy ||
+                    !native ||
+                    ids.length === 0 ||
+                    ids.some((id) => !available.some((a) => a.id === id))
+                  }
+                  onClick={() => void start()}
+                >
+                  {busy ? (
+                    <LoaderCircle size={16} className="warmup-spinner" />
+                  ) : (
+                    <Play size={16} />
+                  )}
+                  {busy
+                    ? t("در حال ثبت…", "Saving…")
+                    : scheduled
+                      ? t("زمان‌بندی ارسال", "Schedule send")
+                      : t(
+                          `ارسال به ${new Intl.NumberFormat("fa-IR").format(ids.length)} حساب`,
+                          `Send to ${ids.length} ${ids.length === 1 ? "account" : "accounts"}`,
+                        )}
+                </Button>
+              </div>
+            </>
           )}
-          {error && (
-            <p role="alert">
-              {t(
-                "عملیات انجام نشد. اتصال و وضعیت اکانت‌ها را بررسی کنید و زمان معتبر تا ۳۰ روز آینده انتخاب کنید.",
-                "Could not complete the action. Check your connection and accounts, and choose a valid time within 30 days.",
-              )}
+          {showingResults && job && (
+            <>
+              <section className="warmup-results" aria-live="polite">
+                <div className="warmup-run-summary" role="status">
+                  <strong>{warmupLabel(job.status, fa)}</strong>
+                  <span>
+                    {accountCount(job.rows.length)}
+                    {job.at ? ` · ${date(job.at)}` : ""}
+                  </span>
+                  {job.status === "running" && (
+                    <>
+                      <progress
+                        max={Math.max(1, job.rows.length)}
+                        value={finished}
+                        aria-label={t("حساب‌های بررسی‌شده", "Accounts checked")}
+                      />
+                      <small>
+                        {t(
+                          `${number(finished)} از ${number(job.rows.length)} حساب بررسی شده`,
+                          `${number(finished)} of ${number(job.rows.length)} accounts checked`,
+                        )}
+                      </small>
+                    </>
+                  )}
+                </div>
+                <div className="warmup-result-counts">
+                  <div>
+                    <strong>
+                      {number(
+                        job.rows.filter((r) => r.status === "confirmed").length,
+                      )}
+                    </strong>
+                    <span>{t("تأییدشده", "Confirmed")}</span>
+                  </div>
+                  <div>
+                    <strong>
+                      {number(
+                        job.rows.filter((r) => r.status === "alreadyActive")
+                          .length,
+                      )}
+                    </strong>
+                    <span>{t("از قبل فعال", "Already active")}</span>
+                  </div>
+                  <div>
+                    <strong>
+                      {number(
+                        job.rows.filter(
+                          (r) => resultTone(r.status) === "attention",
+                        ).length,
+                      )}
+                    </strong>
+                    <span>{t("نیازمند بررسی", "Needs review")}</span>
+                  </div>
+                </div>
+                <ul
+                  className="warmup-result-list"
+                  aria-label={t("وضعیت حساب‌ها", "Account results")}
+                >
+                  {job.rows.map((r) => (
+                    <li key={r.accountId} data-tone={resultTone(r.status)}>
+                      <span className="warmup-result-icon" aria-hidden="true">
+                        {resultTone(r.status) === "success" ? (
+                          <CheckCircle2 size={18} />
+                        ) : resultTone(r.status) === "attention" ? (
+                          <CircleAlert size={18} />
+                        ) : r.status === "sending" ? (
+                          <LoaderCircle size={18} className="warmup-spinner" />
+                        ) : (
+                          <Clock3 size={18} />
+                        )}
+                      </span>
+                      <div>
+                        <strong>
+                          <bdi>{r.label}</bdi>
+                        </strong>
+                        <p>{warmupLabel(r.status, fa)}</p>
+                        {r.resetsAt ? (
+                          <small>
+                            {t("بازنشانی سهمیه:", "Quota resets:")}{" "}
+                            {date(r.resetsAt)}
+                          </small>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <div className="warmup-actions">
+                {job.status === "pending" && (
+                  <Button
+                    variant="outline"
+                    disabled={busy || !native}
+                    onClick={() => void cancel()}
+                  >
+                    {busy
+                      ? t("در حال لغو…", "Cancelling…")
+                      : t("لغو زمان‌بندی", "Cancel schedule")}
+                  </Button>
+                )}
+                {!occupied && (
+                  <Button
+                    variant="outline"
+                    disabled={!available.length || busy}
+                    onClick={setup}
+                  >
+                    <Plus size={16} />
+                    {t("اجرای جدید", "New run")}
+                  </Button>
+                )}
+                <Button onClick={() => setOpen(false)}>
+                  {t("بستن", "Close")}
+                </Button>
+              </div>
+            </>
+          )}
+          {error && error !== "time" && (
+            <p className="warmup-error" role="alert">
+              {error === "load"
+                ? t(
+                    "وضعیت اجرا دریافت نشد. اتصال را بررسی و برنامه را دوباره باز کنید.",
+                    "Could not load the run. Check your connection and reopen the app.",
+                  )
+                : error === "cancel"
+                  ? t(
+                      "زمان‌بندی لغو نشد. وضعیت اجرا و اتصال را بررسی و دوباره تلاش کنید.",
+                      "Could not cancel. Check the run status and your connection, then try again.",
+                    )
+                  : t(
+                      "درخواست ثبت نشد. اتصال و وضعیت حساب‌های انتخاب‌شده را بررسی کنید.",
+                      "Could not save the run. Check your connection and the selected accounts.",
+                    )}
             </p>
           )}
         </DialogContent>

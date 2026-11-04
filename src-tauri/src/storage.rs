@@ -22,7 +22,7 @@ pub struct Saved {
     #[serde(default)]
     pub transfer_extensions: serde_json::Map<String, serde_json::Value>,
 }
-fn reject_link(path: &Path) -> Result<(), String> {
+pub(crate) fn reject_link(path: &Path) -> Result<(), String> {
     if fs::symlink_metadata(path)
         .map(|m| {
             #[cfg(windows)]

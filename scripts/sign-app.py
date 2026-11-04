@@ -77,6 +77,7 @@ def main():
     arguments = ['/usr/bin/codesign', '--force', '--options', 'runtime', '--sign']
     if identity:
         arguments.append(identity)
+        arguments.append('--timestamp')
         if keychain := os.environ.get('CODEXDECK_SIGNING_KEYCHAIN', '').strip():
             arguments.extend(['--keychain', keychain])
     else:

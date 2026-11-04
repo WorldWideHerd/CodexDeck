@@ -100,22 +100,122 @@ final class OriginalDesktopRuntime: DesktopApplicationRuntime {
         return result
     }
 
+    /// Keep process start times so a recycled PID can never target an unrelated app.
+    struct ProcessIdentity: Equatable {
+        let pid: pid_t
+        let parent: pid_t
+        let uid: uid_t
+        let seconds: Int
+        let microseconds: Int
+    }
+
+    nonisolated static func descendants(of roots: Set<pid_t>, in processes: [ProcessIdentity], uid: uid_t) -> [ProcessIdentity] {
+        var selected = roots
+        var result: [ProcessIdentity] = []
+        var added = true
+        while added {
+            added = false
+            for process in processes where process.uid == uid && !selected.contains(process.pid) && selected.contains(process.parent) {
+                selected.insert(process.pid)
+                result.append(process)
+                added = true
+            }
+        }
+        return result
+    }
+
+    private static func processTable() throws -> [ProcessIdentity] {
+        var query: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
+        // The table may grow between sysctl calls. Retry with spare capacity.
+        for _ in 0..<3 {
+            var size = 0
+            guard sysctl(&query, u_int(query.count), nil, &size, nil, 0) == 0 else { throw DesktopSwitchError.quit }
+            let stride = MemoryLayout<kinfo_proc>.stride
+            var entries = [kinfo_proc](repeating: kinfo_proc(), count: size / stride + 128)
+            size = entries.count * stride
+            let status = entries.withUnsafeMutableBytes { sysctl(&query, u_int(query.count), $0.baseAddress, &size, nil, 0) }
+            if status != 0 { continue }
+            return entries.prefix(size / stride).compactMap { entry in
+                guard entry.kp_proc.p_stat != SZOMB else { return nil }
+                return ProcessIdentity(pid: entry.kp_proc.p_pid, parent: entry.kp_eproc.e_ppid,
+                    uid: entry.kp_eproc.e_ucred.cr_uid,
+                    seconds: entry.kp_proc.p_starttime.tv_sec, microseconds: Int(entry.kp_proc.p_starttime.tv_usec))
+            }
+        }
+        throw DesktopSwitchError.quit
+    }
+
+    private var trackedProcesses: [pid_t: ProcessIdentity] = [:]
+
+    /// Track descendants before asking the app to quit: background tasks can outlive
+    /// their parent and become reparented to launchd during a normal quit attempt.
+    private func runningOriginalTree() throws -> [ProcessIdentity] {
+        let applications = try originalProcesses()
+        let table = try Self.processTable()
+        let live = Dictionary(uniqueKeysWithValues: table.map { ($0.pid, $0) })
+        trackedProcesses = trackedProcesses.filter { pid, identity in
+            guard let current = live[pid] else { return false }
+            return current.uid == identity.uid && current.seconds == identity.seconds && current.microseconds == identity.microseconds
+        }
+        let roots = Set(applications.map(\.processIdentifier))
+        for process in table where roots.contains(process.pid) && process.uid == getuid() {
+            trackedProcesses[process.pid] = process
+        }
+        for process in Self.descendants(of: Set(trackedProcesses.keys), in: table, uid: getuid()) {
+            trackedProcesses[process.pid] = process
+        }
+        return Array(trackedProcesses.values)
+    }
+
+    private func confirmForceQuit() -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = L("بستن اجباری Codex؟", "Force quit Codex?")
+        alert.informativeText = L(
+            "Codex هنوز باز است یا تسک پس‌زمینه دارد. با ادامه، Codex و همهٔ پردازش‌ها و تسک‌های وابسته به همین نسخه بسته می‌شوند. ممکن است کار ذخیره‌نشده از دست برود. سپس تعویض حساب ادامه پیدا می‌کند.",
+            "Codex is still running or has background tasks. Continuing will force close Codex and all processes and tasks belonging to this instance. Unsaved work may be lost. The account operation will then continue.")
+        // Cancel is the default; force quit always requires an explicit choice.
+        alert.addButton(withTitle: L("انصراف", "Cancel"))
+        alert.addButton(withTitle: L("بستن همه و ادامه", "Close all and continue"))
+        NSApp.activate(ignoringOtherApps: true)
+        return alert.runModal() == .alertSecondButtonReturn
+    }
+
     func quitOriginal() async throws -> Bool {
         let applications = try originalProcesses()
-        for app in applications where !app.isTerminated {
-            guard app.terminate() || app.isTerminated else { throw DesktopSwitchError.quit }
-        }
+        let wasRunning = try !runningOriginalTree().isEmpty
+        for app in applications where !app.isTerminated { _ = app.terminate() }
         let deadline = Date().addingTimeInterval(20)
-        while applications.contains(where: { !$0.isTerminated }) {
-            guard Date() < deadline else { throw DesktopSwitchError.quit }
+        while try !runningOriginalTree().isEmpty && Date() < deadline {
             try await Task.sleep(nanoseconds: 100_000_000)
         }
+        try await Self.forceQuitIfNeeded(running: { try self.runningOriginalTree() }, confirm: { self.confirmForceQuit() }) { process in
+            // Refresh identity immediately before each signal. Never kill by name.
+            let current = try Self.processTable().first { $0.pid == process.pid }
+            guard let current, current.uid == process.uid,
+                  current.seconds == process.seconds, current.microseconds == process.microseconds else { return }
+            guard kill(process.pid, SIGKILL) == 0 || errno == ESRCH else { throw DesktopSwitchError.quit }
+        }
         try requireStopped()
-        return !applications.isEmpty
+        return wasRunning
+    }
+
+    static func forceQuitIfNeeded(running: () throws -> [ProcessIdentity], confirm: () -> Bool,
+                                  stop: (ProcessIdentity) throws -> Void) async throws {
+        guard try !running().isEmpty else { return }
+        guard confirm() else { throw DesktopAuthorizationError.cancelled }
+        let deadline = Date().addingTimeInterval(5)
+        while true {
+            let processes = try running()
+            if processes.isEmpty { return }
+            guard Date() < deadline else { throw DesktopSwitchError.quit }
+            for process in processes { try stop(process) }
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
     }
 
     func requireStopped() throws {
-        guard try originalProcesses().isEmpty else { throw DesktopSwitchError.quit }
+        guard try runningOriginalTree().isEmpty else { throw DesktopSwitchError.quit }
     }
 
     func launchOriginal() async throws {

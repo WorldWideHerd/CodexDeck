@@ -1,5 +1,5 @@
 import { dateLocale } from "@/lib/dates";
-import { Maximize2, Power, RefreshCw } from "lucide-react";
+import { CircleAlert, Maximize2, Power, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "./ui/button";
@@ -72,7 +72,7 @@ export function MenubarPanel({
         </Button>
       </header>
       <div className="menubar-columns">
-        <span>{t("اکانت", "Account")}</span>
+        <span>{t("حساب", "Account")}</span>
         <span>{t("۵ ساعته", "5-hour")}</span>
         <span>{t("هفتگی", "Weekly")}</span>
       </div>
@@ -81,6 +81,23 @@ export function MenubarPanel({
           const main = buckets(a.snapshot)[0]?.[1];
           const windows = [main?.primary, main?.secondary];
           const stale = isStale(a, state.settings.refreshMinutes, now);
+          const accountNotice =
+            a.status === "needsLogin" || a.status === "idle"
+              ? t(
+                  "نیاز به ورود؛ برنامه را باز کنید.",
+                  "Sign in required; open the app.",
+                )
+              : a.status === "failed"
+                ? t(
+                    "خطا در دریافت؛ برنامه را برای بررسی باز کنید.",
+                    "Refresh failed; open the app for details.",
+                  )
+                : stale
+                  ? t(
+                      "اطلاعات قدیمی؛ تازه‌سازی کنید.",
+                      "Cached data; refresh to update.",
+                    )
+                  : null;
           function percentage(w: UsageWindow | undefined | null) {
             const value = w ? remaining(w) : null;
             return (
@@ -138,8 +155,20 @@ export function MenubarPanel({
                   }}
                 />
                 <span className="menubar-account-label">
-                  <span className="menubar-label-text" dir="auto">
-                    {a.label}
+                  <span className="menubar-name-line">
+                    <span className="menubar-label-text" dir="auto">
+                      {a.label}
+                    </span>
+                    {accountNotice && (
+                      <span
+                        className="menubar-account-status"
+                        role="img"
+                        aria-label={accountNotice}
+                        title={accountNotice}
+                      >
+                        <CircleAlert size={12} aria-hidden="true" />
+                      </span>
+                    )}
                   </span>
                   <small>{a.plan ?? "—"}</small>
                 </span>
@@ -150,7 +179,7 @@ export function MenubarPanel({
           );
         })}
         {!state.accounts.length && (
-          <p>{t("هنوز اکانتی اضافه نشده", "No accounts yet")}</p>
+          <p>{t("هنوز حسابی اضافه نشده", "No accounts yet")}</p>
         )}
       </div>
       {state.lastError && (
