@@ -2,14 +2,15 @@
 import Foundation
 import Security
 
-enum SigningError: Error { case security(OSStatus, Int), arguments }
+enum SigningError: Error { case security(OSStatus, Int), arguments, codesign(Int32) }
 func check(_ status: OSStatus, line: Int = #line) throws {
     guard status == errSecSuccess else { throw SigningError.security(status, line) }
 }
 
 func prepare() throws {
     let args = CommandLine.arguments
-    guard args.count == 3 || args.count == 4 else { throw SigningError.arguments }
+    let signing = args.count >= 5 && args[3] == "--codesign"
+    guard args.count == 3 || args.count == 4 || signing else { throw SigningError.arguments }
     let path = args[1]
     let passphrase = try String(contentsOfFile: args[2], encoding: .utf8).trimmingCharacters(in: .newlines)
     let password = Data(passphrase.utf8)
@@ -55,6 +56,33 @@ func prepare() throws {
         try withExtendedLifetime((access, importPassword)) {
             try check(SecItemImport(archive as CFData, nil, &format, &type, [], &parameters, keychain, nil))
         }
+    }
+    if signing {
+        var previous: CFArray?
+        try check(SecKeychainCopySearchList(&previous))
+        guard let previous, let keychains = previous as? [SecKeychain] else {
+            throw SigningError.arguments
+        }
+        // --keychain selects an identity, but codesign still resolves its certificate
+        // chain through the search list. Fresh macOS CI workers need both paths.
+        // Preserve the list and default keychain; never install a trusted root.
+        try check(SecKeychainSetSearchList(([keychain] + keychains) as CFArray))
+        var commandError: Error?
+        do {
+            let command = Process()
+            command.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+            command.arguments = Array(args.dropFirst(4))
+            try command.run()
+            command.waitUntilExit()
+            if command.terminationStatus != 0 {
+                throw SigningError.codesign(command.terminationStatus)
+            }
+        } catch {
+            commandError = error
+        }
+        // Restore on both success and signing failure, and report restoration errors.
+        try check(SecKeychainSetSearchList(previous))
+        if let commandError { throw commandError }
     }
 }
 

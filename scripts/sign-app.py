@@ -20,11 +20,7 @@ def run(*arguments):
     return result.stdout.strip()
 
 
-def local_identity():
-    directory = ROOT / '.local-data/signing'
-    certificate = directory / 'certificate.pem'
-    password = directory / 'password'
-    keychain = directory / 'signing.keychain-db'
+def signing_helper():
     source = ROOT / 'scripts/prepare-signing-keychain.swift'
     cache = ROOT / '.build/signing-tools'
     cache.mkdir(parents=True, exist_ok=True)
@@ -32,6 +28,15 @@ def local_identity():
     if not helper.exists():
         run('/usr/bin/swiftc', '-module-cache-path', str(ROOT / '.build/swift-cache'),
             str(source), '-o', str(helper))
+    return helper
+
+
+def local_identity():
+    directory = ROOT / '.local-data/signing'
+    certificate = directory / 'certificate.pem'
+    password = directory / 'password'
+    keychain = directory / 'signing.keychain-db'
+    helper = signing_helper()
     if directory.is_symlink():
         raise RuntimeError('The local signing directory must not be a symlink.')
     if not directory.exists():
@@ -84,7 +89,12 @@ def main():
         identity, keychain = local_identity()
         arguments.extend([identity, '--keychain', str(keychain), '--timestamp=none'])
     arguments.extend(['--identifier', options.identifier, options.bundle])
-    run(*arguments)
+    if os.environ.get('CODEXDECK_SIGNING_IDENTITY', '').strip():
+        run(*arguments)
+    else:
+        # Keep the local keychain searchable only while this signing process runs.
+        run(str(signing_helper()), str(keychain), str(ROOT / '.local-data/signing/password'),
+            '--codesign', *arguments[1:])
     run('/usr/bin/codesign', '--verify', '--strict', options.bundle)
     print('Signed with ' + ('explicit identity.' if os.environ.get('CODEXDECK_SIGNING_IDENTITY') else 'persistent local development identity.'))
 
