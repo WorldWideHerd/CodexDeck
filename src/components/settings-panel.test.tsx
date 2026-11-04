@@ -76,9 +76,7 @@ describe("settings panel", () => {
       "Usage and error reporting starts only with your permission.",
     );
     expect(html).toContain('role="switch" aria-checked="false" disabled=""');
-    expect(html).toContain(
-      "Account details, tokens, chats, file paths and raw error messages are not sent.",
-    );
+    expect(html).toContain("without account details or chat content.");
     for (const label of ["Quit app", "Choose Codex CLI executable"]) {
       const action = buttons(html).find((button) => button.text === label);
       expect(action, label).toBeDefined();

@@ -310,8 +310,8 @@ export function SettingsPanel({
           />
           <p>
             {t(
-              "با خاموش‌کردن، گزارش‌های جدید متوقف می‌شوند و حضور آنلاین حذف می‌شود؛ اگر اتصال برقرار نباشد، حداکثر پس از ۳ دقیقه منقضی می‌شود.",
-              "Turning this off stops new reports and removes online presence; if the connection fails, presence expires within 3 minutes.",
+              "با خاموش‌کردن، ارسال گزارش متوقف می‌شود. حذف از شمارش آنلاین ممکن است تا ۳ دقیقه طول بکشد.",
+              "Turning this off stops reporting. Removal from the online count may take up to 3 minutes.",
             )}
           </p>
           <ReportingDetails fa={fa} />

@@ -15,13 +15,13 @@ export function ReportingDetails({ fa }: { fa: boolean }) {
       <summary>{fa ? "چه چیزی ارسال می‌شود؟" : "What is shared?"}</summary>
       <p>
         {fa
-          ? "فقط وضعیت باز بودن برنامه، شناسهٔ موقت، نسخهٔ برنامه و کدهای مشخص خطای فنی. اطلاعات حساب، توکن، متن گفتگو، مسیر فایل و متن خام خطا ارسال نمی‌شود."
-          : "Only app presence, a temporary identifier, app version, and predefined technical error codes. Account details, tokens, chats, file paths and raw error messages are not sent."}
+          ? "وضعیت بازبودن اپ، نسخه و کد خطا با یک شناسهٔ موقت ارسال می‌شود؛ بدون اطلاعات اکانت یا متن گفتگو."
+          : "We send app presence, version and error codes with a temporary ID, without account details or chat content."}
       </p>
       <p>
         {fa
-          ? "آمار آنلاین شامل برنامه‌های باز در پس‌زمینه هم هست و بر اساس پیام ۳ دقیقهٔ اخیر محاسبه می‌شود. آدرس IP هنگام اتصال برای زیرساخت قابل مشاهده است."
-          : "Online counts include apps running in the background and use signals received in the last 3 minutes. Your IP address is visible to the infrastructure when connecting."}
+          ? "آنلاین یعنی اپ باز است، حتی در پس‌زمینه. IP اتصال برای سرور قابل مشاهده است."
+          : "Online means the app is running, including in the background. The server can see your connection IP."}
       </p>
     </details>
   );
@@ -48,8 +48,8 @@ export function ReportingConsent({ consent, fa, busy, onChoose }: Props) {
         </h2>
         <p>
           {fa
-            ? "اختیاری: تعداد برنامه‌های فعال و خطاهای فنی مشخص را به سرور CodexDeck بفرستید. تا انتخاب شما چیزی ارسال نمی‌شود؛ هر زمان از تنظیمات قابل تغییر است."
-            : "Optionally share app presence and predefined technical errors with the CodexDeck server. Nothing is sent until you choose; you can change this in Settings anytime."}
+            ? "با ارسال وضعیت آنلاین و کد خطاها به بهبود اپ کمک کنید. فقط با اجازهٔ شما؛ قابل خاموش‌کردن در تنظیمات."
+            : "Help improve the app by sharing online status and error codes. Nothing is sent until you choose; turn it off anytime in Settings."}
         </p>
         <ReportingDetails fa={fa} />
       </div>

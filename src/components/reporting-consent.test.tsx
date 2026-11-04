@@ -19,7 +19,7 @@ it("sends no consent choice until clicked, saves refusal and hides a decided pro
   );
   expect(choose).not.toHaveBeenCalled();
   expect(host.textContent).toContain("Nothing is sent until you choose");
-  expect(host.textContent).toContain("Your IP address is visible");
+  expect(host.textContent).toContain("The server can see your connection IP");
   const buttons = Array.from(host.querySelectorAll("button"));
   await act(async () =>
     buttons.find((button) => button.textContent === "No thanks")!.click(),
