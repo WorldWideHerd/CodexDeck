@@ -307,11 +307,10 @@ export function SettingsPanel({
           />
           <p>
             {t(
-              "پیش‌فرض روشن است. با خاموش‌کردن، ارسال گزارش متوقف می‌شود. حذف از شمارش آنلاین ممکن است تا ۳ دقیقه طول بکشد.",
-              "On by default. Turning this off stops reporting. Removal from the online count may take up to 3 minutes.",
+              "برای شمارش کاربران آنلاین و بهبود برنامه؛ بدون اطلاعات اکانت و گفتگوها.",
+              "Help count online users and improve the app, without account details or conversations.",
             )}
           </p>
-          <ReportingDetails fa={fa} />
         </Section>
 
         <details className="settings-advanced">
@@ -336,6 +335,7 @@ export function SettingsPanel({
                 "You can turn reporting off under Usage & errors.",
               )}
             </p>
+            <ReportingDetails fa={fa} />
           </div>
         </details>
         <details className="settings-advanced">

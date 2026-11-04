@@ -35,7 +35,7 @@ export function ReportingControl({ consent, fa, busy, onChoose }: Props) {
       disabled={busy}
       onClick={() => void onChoose(consent === false)}
     >
-      {fa ? "ارسال آمار و خطاها" : "Send usage & error reports"}
+      {fa ? "ارسال آمار و خطاهای فنی" : "Send usage & technical error reports"}
       <span aria-hidden="true">
         {consent !== false ? (fa ? "روشن" : "On") : fa ? "خاموش" : "Off"}
       </span>
