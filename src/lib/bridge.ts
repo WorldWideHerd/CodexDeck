@@ -14,7 +14,7 @@ export const native = isTauri();
 export const emptyState: AppState = {
   accounts: [],
   settings: {
-    language: "fa",
+    language: "en",
     calendar: "persian",
     appearance: "system",
     refreshMinutes: 3,

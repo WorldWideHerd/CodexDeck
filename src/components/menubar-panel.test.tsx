@@ -6,6 +6,7 @@ const now = Date.now() / 1000;
 describe("menu bar summary", () => {
   it("shows known quotas without manufacturing unknown windows", () => {
     const state = syntheticState();
+    state.settings = { ...state.settings, language: "fa" };
     state.accounts[0].snapshot = null;
     const html = renderToStaticMarkup(
       <MenubarPanel
@@ -21,6 +22,7 @@ describe("menu bar summary", () => {
   });
   it("marks cached quotas as stale rather than current", () => {
     const state = syntheticState();
+    state.settings = { ...state.settings, language: "fa" };
     state.accounts[0].status = "needsLogin";
     const html = renderToStaticMarkup(
       <MenubarPanel

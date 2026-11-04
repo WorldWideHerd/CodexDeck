@@ -42,10 +42,10 @@ function selected(html: string) {
 }
 
 describe("settings panel", () => {
-  it("identifies exactly the saved language, appearance and refresh choices", () => {
+  it("defaults to English and identifies the saved calendar, appearance and refresh choices", () => {
     const html = render();
-    expect(selected(html)).toEqual(["فارسی", "شمسی", "سیستم", "3"]);
-    expect(html).toContain('dir="rtl"');
+    expect(selected(html)).toEqual(["English", "Persian", "System", "3"]);
+    expect(html).toContain('dir="ltr"');
     expect(
       buttons(html).filter((b) =>
         b.attributes.includes('aria-pressed="false"'),

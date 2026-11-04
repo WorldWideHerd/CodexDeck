@@ -104,7 +104,7 @@ it("keeps only one account expanded in the dashboard and supports rapid toggling
   try {
     await act(async () => root.render(<App />));
     const preview = Array.from(host.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("نمایش داده نمونه"),
+      button.textContent?.includes("Show sample data"),
     )!;
     await act(async () => preview.click());
     const cards = host.querySelectorAll<HTMLElement>("[data-account-id]");

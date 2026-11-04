@@ -11,11 +11,15 @@ macOS on Apple Silicon is the locally validated build. Intel macOS, Windows and 
 
 ## Preview
 
-![CodexDeck English dashboard with synthetic accounts](docs/images/dashboard-en.png)
+**Light appearance**
 
-![CodexDeck Persian dashboard with synthetic accounts](docs/images/dashboard-fa.png)
+[![CodexDeck English dashboard in light appearance](docs/images/dashboard-light.jpg)](docs/images/dashboard-light.jpg)
 
-The screenshots show synthetic accounts, with no real sign-in data.
+**Dark appearance**
+
+[![CodexDeck English dashboard in dark appearance](docs/images/dashboard-dark.jpg)](docs/images/dashboard-dark.jpg)
+
+Both screenshots show the English interface with synthetic accounts. They are rendered at 2× resolution; open an image to view it at full size.
 
 ## Downloads
 

@@ -115,7 +115,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            language: "fa".into(),
+            language: "en".into(),
             calendar: "persian".into(),
             appearance: "system".into(),
             refresh_minutes: 3,
