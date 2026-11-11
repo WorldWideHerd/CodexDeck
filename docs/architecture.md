@@ -20,7 +20,7 @@ Events update state (`state-changed`), login (`login-changed`), switching (`desk
 
 Isolated accounts use separate CLI homes. On macOS, credentials use private, owner-only `auth.json` files; other platforms use the OS credential store. macOS original-account switching uses a Swift transaction and a signed XPC broker; keep bundle identifiers and signing identity stable. Archive credentials stay native to the [transfer implementation](account-transfer.md).
 
-macOS is locally validated. Windows/Linux runtime behavior remains unverified; original-account switching is unavailable there. Notification availability depends on native readiness and OS permissions.
+macOS is locally validated. Windows original-account switching has a separate Rust/DPAPI transaction for the official MSIX app; runtime validation is still required on Windows (see [test procedure](testing/windows-account-switching.md)). Linux original-account switching remains unavailable. Notification availability depends on native readiness and OS permissions.
 
 ## Optional reporting boundary
 

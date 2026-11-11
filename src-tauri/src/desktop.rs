@@ -1,4 +1,8 @@
-//! Signed, main-account switching via the unchanged Swift transaction and credential broker.
+//! Original-account switching through platform-specific native transactions.
+#[cfg(any(windows, test))]
+#[cfg_attr(not(windows), allow(dead_code))]
+#[path = "desktop_windows.rs"]
+mod windows;
 use std::path::{Path, PathBuf};
 #[cfg(not(target_os = "macos"))]
 pub const UNSUPPORTED: &str = "desktopUnsupported";
@@ -23,7 +27,11 @@ pub fn probe() -> bool {
     unsafe {
         available() && codexdeck_main_switch_probe() == 0
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        windows::available()
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         false
     }
@@ -37,7 +45,11 @@ pub fn unavailable_reason() -> &'static str {
             "desktopBroker"
         }
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        "desktopMissing"
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         UNSUPPORTED
     }
@@ -47,7 +59,11 @@ pub fn available() -> bool {
     unsafe {
         codexdeck_desktop_available() == 1 && codexdeck_main_switch_ready() == 1
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        windows::available()
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         false
     }
@@ -66,7 +82,11 @@ pub fn original_home() -> Result<PathBuf, String> {
             .map_err(|_| "desktopMissing")?;
         Ok(PathBuf::from(path).join(".codex"))
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        windows::home()
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         Err(UNSUPPORTED.into())
     }
@@ -79,7 +99,11 @@ pub fn require_recovered() -> Result<(), String> {
         2 => return Err("desktopReview".into()),
         _ => return Err("desktopBroker".into()),
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        windows::require_recovered()
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         Err(UNSUPPORTED.into())
     }
@@ -112,7 +136,7 @@ mod bridge {
     };
     use tauri::Emitter;
     struct Pending {
-        reply: tokio::sync::oneshot::Sender<Result<Option<String>, String>>,
+        reply: tokio::sync::oneshot::Sender<Result<serde_json::Value, String>>,
         app: tauri::AppHandle,
     }
     static PENDING: OnceLock<Mutex<HashMap<u64, Pending>>> = OnceLock::new();
@@ -136,10 +160,7 @@ mod bridge {
                 let result = if let Some(error) = value["error"].as_str() {
                     Err(error.to_owned())
                 } else {
-                    Ok(value["activeId"]
-                        .as_str()
-                        .filter(|s| crate::models::valid_id(s))
-                        .map(str::to_owned))
+                    Ok(value)
                 };
                 let _ = call.reply.send(result);
             }
@@ -154,6 +175,8 @@ mod bridge {
                     | "verifying"
                     | "opening"
                     | "recovering"
+                    | "authorizingProjectCopy"
+                    | "copyingProjects"
             )
         }) {
             if let Some(call) = pending().lock().unwrap().get(&key) {
@@ -164,7 +187,7 @@ mod bridge {
     pub async fn run(
         app: &tauri::AppHandle,
         request: serde_json::Value,
-    ) -> Result<Option<String>, String> {
+    ) -> Result<serde_json::Value, String> {
         let text =
             std::ffi::CString::new(serde_json::to_string(&request).map_err(|_| "desktopBroker")?)
                 .map_err(|_| "desktopBroker")?;
@@ -190,11 +213,46 @@ pub async fn switch(
 ) -> Result<Option<String>, String> {
     #[cfg(target_os = "macos")]
     {
-        bridge::run(app, request).await
+        let value = bridge::run(app, request).await?;
+        Ok(value["activeId"]
+            .as_str()
+            .filter(|s| crate::models::valid_id(s))
+            .map(str::to_owned))
+    }
+    #[cfg(windows)]
+    {
+        return windows::switch(app, request).await;
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
+    {
+        let _ = (app, request);
+        Err(UNSUPPORTED.into())
+    }
+}
+
+pub async fn copy_projects(
+    app: &tauri::AppHandle,
+    language: &str,
+) -> Result<serde_json::Value, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let value = bridge::run(
+            app,
+            serde_json::json!({
+                "action": "copyProjects", "language": language, "profiles": []
+            }),
+        )
+        .await?;
+        let report = &value["projectReport"];
+        if report["copied"].is_u64() && report["missing"].is_u64() {
+            Ok(report.clone())
+        } else {
+            Err("projectsCopyFailed".into())
+        }
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (app, request);
+        let _ = (app, language);
         Err(UNSUPPORTED.into())
     }
 }

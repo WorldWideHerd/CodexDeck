@@ -3,9 +3,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AccountTransfer } from "./account-transfer";
 import { SettingsPanel } from "./settings-panel";
 import { emptyState } from "@/lib/bridge";
-import type { Settings } from "@/lib/types";
+import type { PlatformCapabilities, Settings } from "@/lib/types";
 
-function render(patch: Partial<Settings> = {}) {
+function render(
+  patch: Partial<Settings> = {},
+  platformCaps: Partial<PlatformCapabilities> = {},
+) {
   const settings = { ...emptyState.settings, ...patch };
   const fa = settings.language === "fa";
   return renderToStaticMarkup(
@@ -16,6 +19,7 @@ function render(patch: Partial<Settings> = {}) {
         desktopSwitch: false,
         desktopRestore: false,
         reason: null,
+        ...platformCaps,
       }}
       busy={false}
       fa={fa}
@@ -42,6 +46,16 @@ function selected(html: string) {
 }
 
 describe("settings panel", () => {
+  it("shows Windows restoration and close-first guidance without macOS project copying", () => {
+    const html = render(
+      {},
+      { platform: "windows", desktopSwitch: true, desktopRestore: true },
+    );
+    expect(html).toContain("Restore original desktop account");
+    expect(html).toContain("close Codex and its tasks");
+    expect(html).not.toContain("Copy project list");
+    expect(html).not.toContain("Touch ID");
+  });
   it("defaults to English and identifies the saved calendar, appearance and refresh choices", () => {
     const html = render();
     expect(selected(html)).toEqual(["English", "Persian", "System", "3"]);

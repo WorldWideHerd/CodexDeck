@@ -18,6 +18,24 @@ struct DesktopQuitProbe {
             in: [grandchild, unrelated, otherUser, child, otherAccount, root], uid: 501)
         precondition(Set(children.map(\.pid)) == [101, 102], "Only original instance descendants are selected")
 
+        let exited = try OriginalDesktopRuntime.pathsWhileRunning(root, read: { _ in
+            throw DesktopSwitchError.quit
+        }, lookup: { _ in nil })
+        precondition(exited == nil, "A process that exits during inspection must not block the switch")
+
+        let reusedPID = Identity(pid: root.pid, parent: 1, uid: root.uid, seconds: root.seconds + 1, microseconds: 0)
+        let replaced = try OriginalDesktopRuntime.pathsWhileRunning(root, read: { _ in
+            throw DesktopSwitchError.quit
+        }, lookup: { _ in reusedPID })
+        precondition(replaced == nil && !root.matches(reusedPID), "A recycled PID is not the original process")
+
+        do {
+            _ = try OriginalDesktopRuntime.pathsWhileRunning(root, read: { _ in
+                throw DesktopSwitchError.quit
+            }, lookup: { _ in root })
+            preconditionFailure("Inspection failures for a live process must block the switch")
+        } catch DesktopSwitchError.quit { }
+
         var prompts = 0
         var signals: [Int32] = []
         try await OriginalDesktopRuntime.forceQuitIfNeeded(running: { [] }, confirm: {

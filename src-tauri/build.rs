@@ -28,6 +28,7 @@ fn build_switch_bridge() {
         root.join("native/macos/MainAccountSwitch.swift"),
         root.join("native/macos/DesktopCredentials.swift"),
         root.join("native/macos/DesktopAccountSwitcher.swift"),
+        root.join("native/macos/DesktopProjectCopy.swift"),
         root.join("native/macos/DesktopAuthorization.swift"),
         root.join("native/macos/DesktopSwitchProgress.swift"),
         root.join("native/macos/CredentialBrokerProtocol.swift"),

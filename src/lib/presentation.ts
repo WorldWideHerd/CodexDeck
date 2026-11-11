@@ -31,8 +31,8 @@ const messages = {
     "The original app’s credential storage or login restrictions are unsupported. Its account was not changed.",
   ],
   desktopQuit: [
-    "Codex بسته نشد یا دوباره باز شد. کارهای باز و پنجرهٔ تأیید خروج آن را بررسی و دوباره تلاش کن.",
-    "Codex did not quit or reopened. Finish open work, check its quit confirmation, and retry.",
+    "Codex یا تسک‌های آن هنوز باز است. کارها را ذخیره کن، Codex و تسک‌هایش را ببند و دوباره تلاش کن.",
+    "Codex or its tasks are still running. Save your work, close Codex and its tasks, then retry.",
   ],
   desktopChanged: [
     "ورود اپ اصلی بیرون از ویجت تغییر کرده است. این حساب را دوباره متصل کن.",
@@ -64,12 +64,12 @@ const messages = {
   ],
 
   desktopMissing: [
-    "برنامهٔ رسمی Codex یا ChatGPT را در پوشهٔ Applications نصب کنید و ویجت را دوباره باز کنید.",
-    "Install the official Codex or ChatGPT app in Applications, then restart CodexDeck.",
+    "برنامهٔ رسمی Codex را نصب کنید (در مک داخل Applications)، سپس CodexDeck را دوباره باز کنید.",
+    "Install the official Codex app (in Applications on macOS), then restart CodexDeck.",
   ],
   desktopUnsupported: [
-    "تغییر حساب Codex فعلاً فقط در نسخهٔ مک در دسترس است.",
-    "Codex account switching is currently available only on macOS.",
+    "تغییر حساب Codex در مک و ویندوز در دسترس است.",
+    "Codex account switching is available on macOS and Windows.",
   ],
   desktopLaunch: [
     "پنجرهٔ Codex باز نشد. نصب برنامه و دسترسی‌های آن را بررسی و دوباره تلاش کنید.",
@@ -86,6 +86,26 @@ const messages = {
   desktopCloseFirst: [
     "ابتدا پنجرهٔ مستقل Codex این حساب را با Quit ببندید، سپس دوباره تلاش کنید.",
     "Quit this account’s separate Codex instance, then retry.",
+  ],
+  projectsCloseApp: [
+    "برنامهٔ اصلی Codex را با ⌘Q ببند، سپس دوباره تلاش کن.",
+    "Quit the original Codex app with ⌘Q, then retry.",
+  ],
+  projectsNoAccount: [
+    "ابتدا در برنامهٔ اصلی Codex به حساب مقصد وارد شو و برنامه را ببند.",
+    "Sign in to the destination account in the original Codex app, then quit it.",
+  ],
+  projectsNoSource: [
+    "یک فهرست مبدأ مشخص پیدا نشد. حساب قبلی باید فهرست پروژه‌های محلی ذخیره‌شده داشته باشد.",
+    "No single source list was found. A previous account needs a saved local project list.",
+  ],
+  projectsChanged: [
+    "فهرست Codex هنگام کپی تغییر کرد. برنامهٔ اصلی را ببند و دوباره تلاش کن.",
+    "Codex project settings changed during the copy. Quit the original app and retry.",
+  ],
+  projectsCopyFailed: [
+    "کپی فهرست پروژه‌ها کامل نشد. نسخهٔ Codex و پوشه‌ها را بررسی کن و دوباره تلاش کن.",
+    "The project copy did not finish. Check the Codex version and project folders, then retry.",
   ],
   transferInvalid: [
     "فایل انتقال نامعتبر یا ناقص است؛ حساب‌ها تغییر نکردند.",
@@ -396,6 +416,10 @@ export function capabilityMessage(
           : "desktopUnsupported",
       fa,
     );
+  if (caps.platform === "windows")
+    return fa
+      ? "پیش از «استفاده در Codex»، کارها را ذخیره کن و Codex و تسک‌هایش را ببند. حساب تغییر می‌کند و Codex دوباره باز می‌شود. بازگردانی حساب قبلی از همین تنظیمات در دسترس است."
+      : "Before Use in Codex, save your work and close Codex and its tasks. The account changes and Codex reopens. Restore the previous account here.";
   return fa
     ? "«استفاده در Codex» حساب پنجرهٔ اصلی را با تأیید Touch ID یا رمز مک تغییر می‌دهد و Codex را دوباره باز می‌کند. بازگردانی حساب قبلی از همین تنظیمات در دسترس است؛ پیش از تأیید کارهای باز را تمام کن."
     : "Use in Codex changes the original app’s account using Touch ID or your Mac password. Codex will close and reopen. Restore the previous account here; finish open work before approving.";
@@ -413,6 +437,11 @@ export const desktopSwitchPhases = {
   verifying: ["تأیید حساب جدید", "Verifying the new account"],
   opening: ["بازکردن دوبارهٔ Codex", "Reopening Codex"],
   recovering: ["بازگردانی حساب قبلی", "Restoring the previous account"],
+  authorizingProjectCopy: [
+    "تأیید با Touch ID یا رمز مک",
+    "Confirm with Touch ID or Mac password",
+  ],
+  copyingProjects: ["کپی فهرست پروژه‌ها", "Copying the project list"],
 };
 export type DesktopSwitchPhase = keyof typeof desktopSwitchPhases;
 export function desktopSwitchPhaseText(

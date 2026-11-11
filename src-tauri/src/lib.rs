@@ -202,6 +202,16 @@ async fn switch_desktop_account(
     core.switch_main_desktop(Some(id)).await
 }
 #[tauri::command]
+async fn copy_desktop_projects(
+    window: tauri::WebviewWindow,
+    core: Core<'_>,
+) -> Result<serde_json::Value, String> {
+    if window.label() != "main" {
+        return Err("Unavailable".into());
+    }
+    core.copy_desktop_projects().await
+}
+#[tauri::command]
 async fn restore_desktop_account(
     window: tauri::WebviewWindow,
     core: Core<'_>,
@@ -605,6 +615,7 @@ pub fn run() {
             get_platform_capabilities,
             switch_desktop_account,
             restore_desktop_account,
+            copy_desktop_projects,
             quit_app,
             show_dashboard,
             hide_menubar

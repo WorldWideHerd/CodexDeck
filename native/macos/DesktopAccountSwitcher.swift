@@ -38,11 +38,16 @@ final class OriginalDesktopRuntime: DesktopApplicationRuntime {
         throw DesktopSwitchError.unavailable
     }
 
-    private func originalProcesses() throws -> [NSRunningApplication] {
-        try checkInstallation()
-        return try NSWorkspace.shared.runningApplications.filter { app in
-            guard app.bundleURL?.standardizedFileURL == application.standardizedFileURL else { return false }
-            let values = try Self.processPaths(app.processIdentifier)
+    private func originalProcesses(_ candidates: [NSRunningApplication],
+                                   in live: [pid_t: ProcessIdentity]) throws -> [NSRunningApplication] {
+        let bundleURL = application.standardizedFileURL
+        return try candidates.filter { app in
+            guard app.bundleURL?.standardizedFileURL == bundleURL,
+                  let identity = live[app.processIdentifier], identity.uid == getuid() else { return false }
+            let values = try Self.pathsWhileRunning(identity, read: Self.processPaths, lookup: { pid in
+                try Self.processTable().first { $0.pid == pid }
+            })
+            guard let values else { return false }
             return Self.isOriginal(paths: values, home: Self.home, userData: Self.userData)
         }
     }
@@ -107,6 +112,23 @@ final class OriginalDesktopRuntime: DesktopApplicationRuntime {
         let uid: uid_t
         let seconds: Int
         let microseconds: Int
+
+        func matches(_ current: ProcessIdentity?) -> Bool {
+            guard let current else { return false }
+            return pid == current.pid && uid == current.uid &&
+                seconds == current.seconds && microseconds == current.microseconds
+        }
+    }
+
+    // Launch Services can still list Codex when its process exits during the read.
+    // Only ignore the error if the kernel confirms this instance is gone.
+    static func pathsWhileRunning(_ identity: ProcessIdentity, read: (pid_t) throws -> [String: String],
+                                  lookup: (pid_t) throws -> ProcessIdentity?) throws -> [String: String]? {
+        do { return try read(identity.pid) }
+        catch {
+            if try identity.matches(lookup(identity.pid)) { throw error }
+            return nil
+        }
     }
 
     nonisolated static func descendants(of roots: Set<pid_t>, in processes: [ProcessIdentity], uid: uid_t) -> [ProcessIdentity] {
@@ -149,22 +171,20 @@ final class OriginalDesktopRuntime: DesktopApplicationRuntime {
 
     /// Track descendants before asking the app to quit: background tasks can outlive
     /// their parent and become reparented to launchd during a normal quit attempt.
-    private func runningOriginalTree() throws -> [ProcessIdentity] {
-        let applications = try originalProcesses()
+    private func scanOriginal() throws -> (applications: [NSRunningApplication], tree: [ProcessIdentity]) {
+        try checkInstallation()
+        let candidates = NSWorkspace.shared.runningApplications
         let table = try Self.processTable()
         let live = Dictionary(uniqueKeysWithValues: table.map { ($0.pid, $0) })
-        trackedProcesses = trackedProcesses.filter { pid, identity in
-            guard let current = live[pid] else { return false }
-            return current.uid == identity.uid && current.seconds == identity.seconds && current.microseconds == identity.microseconds
-        }
-        let roots = Set(applications.map(\.processIdentifier))
-        for process in table where roots.contains(process.pid) && process.uid == getuid() {
-            trackedProcesses[process.pid] = process
+        let applications = try originalProcesses(candidates, in: live)
+        trackedProcesses = trackedProcesses.filter { $0.value.matches(live[$0.key]) }
+        for app in applications {
+            trackedProcesses[app.processIdentifier] = live[app.processIdentifier]
         }
         for process in Self.descendants(of: Set(trackedProcesses.keys), in: table, uid: getuid()) {
             trackedProcesses[process.pid] = process
         }
-        return Array(trackedProcesses.values)
+        return (applications, Array(trackedProcesses.values))
     }
 
     private func confirmForceQuit() -> Bool {
@@ -182,18 +202,27 @@ final class OriginalDesktopRuntime: DesktopApplicationRuntime {
     }
 
     func quitOriginal() async throws -> Bool {
-        let applications = try originalProcesses()
-        let wasRunning = try !runningOriginalTree().isEmpty
-        for app in applications where !app.isTerminated { _ = app.terminate() }
-        let deadline = Date().addingTimeInterval(20)
-        while try !runningOriginalTree().isEmpty && Date() < deadline {
+        var scan = try scanOriginal()
+        let wasRunning = !scan.tree.isEmpty
+        for app in scan.applications where !app.isTerminated { _ = app.terminate() }
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(20))
+        var backgroundDeadline: ContinuousClock.Instant?
+        while !scan.tree.isEmpty && clock.now < deadline {
+            if scan.applications.isEmpty {
+                let grace = backgroundDeadline ?? clock.now.advanced(by: .seconds(2))
+                backgroundDeadline = grace
+                if clock.now >= grace { break }
+            } else {
+                backgroundDeadline = nil
+            }
             try await Task.sleep(nanoseconds: 100_000_000)
+            scan = try scanOriginal()
         }
-        try await Self.forceQuitIfNeeded(running: { try self.runningOriginalTree() }, confirm: { self.confirmForceQuit() }) { process in
+        try await Self.forceQuitIfNeeded(running: { try self.scanOriginal().tree }, confirm: { self.confirmForceQuit() }) { process in
             // Refresh identity immediately before each signal. Never kill by name.
             let current = try Self.processTable().first { $0.pid == process.pid }
-            guard let current, current.uid == process.uid,
-                  current.seconds == process.seconds, current.microseconds == process.microseconds else { return }
+            guard process.matches(current) else { return }
             guard kill(process.pid, SIGKILL) == 0 || errno == ESRCH else { throw DesktopSwitchError.quit }
         }
         try requireStopped()
@@ -215,7 +244,7 @@ final class OriginalDesktopRuntime: DesktopApplicationRuntime {
     }
 
     func requireStopped() throws {
-        guard try runningOriginalTree().isEmpty else { throw DesktopSwitchError.quit }
+        guard try scanOriginal().tree.isEmpty else { throw DesktopSwitchError.quit }
     }
 
     func launchOriginal() async throws {

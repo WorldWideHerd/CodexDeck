@@ -173,6 +173,23 @@ impl Backend {
     pub async fn state(&self) -> AppState {
         self.saved.lock().await.state.clone()
     }
+    pub async fn copy_desktop_projects(&self) -> Result<serde_json::Value, String> {
+        let _login = self.login_gate.lock().await;
+        let _refresh = self.refresh_gate.lock().await;
+        let _settings = self.settings_gate.lock().await;
+        self.writable()?;
+        if !crate::desktop::available() {
+            return Err(crate::desktop::unavailable_reason().into());
+        }
+        if !self.logins.lock().await.is_empty() {
+            return Err("pendingLogin".into());
+        }
+        for (_, client) in self.clients.lock().await.drain() {
+            client.stop().await;
+        }
+        let language = self.state().await.settings.language;
+        crate::desktop::copy_projects(&self.app, &language).await
+    }
     pub async fn switch_main_desktop(&self, id: Option<String>) -> Result<AppState, String> {
         let _login = self.login_gate.lock().await;
         let _refresh = self.refresh_gate.lock().await;
@@ -210,7 +227,8 @@ impl Backend {
         let saved = self.saved.lock().await;
         let request = json!({"action":if id.is_some(){"switch"}else{"restore"},
             "language":saved.state.settings.language, "selectedID":id,
-            "previousID":saved.desktop_account_id, "profiles":profiles});
+            "previousID":saved.desktop_account_id, "profiles":profiles,
+            "executable":saved.state.codex_executable});
         drop(saved);
         let active = crate::desktop::switch(&self.app, request)
             .await

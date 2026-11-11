@@ -11,6 +11,7 @@ import {
   CircleHelp,
   CalendarDays,
   Circle,
+  Copy,
   Download,
   Globe,
   Hand,
@@ -76,6 +77,10 @@ export function SettingsPanel({
   run,
 }: Props) {
   const [transferOpen, setTransferOpen] = useState(false);
+  const [projectCopy, setProjectCopy] = useState<{
+    copied: number;
+    missing: number;
+  } | null>(null);
   const [notificationResult, setNotificationResult] = useState<string | null>(
     null,
   );
@@ -381,6 +386,38 @@ export function SettingsPanel({
                   "Restore original desktop account",
                 )}
               </Button>
+            )}
+            {caps.desktopSwitch && caps.platform === "macos" && (
+              <>
+                <Button
+                  className="settings-action"
+                  variant="ghost"
+                  disabled={!native || busy}
+                  onClick={() => {
+                    setProjectCopy(null);
+                    void run(async () =>
+                      setProjectCopy(await bridge.copyProjects()),
+                    );
+                  }}
+                >
+                  <Copy />
+                  {t("کپی فهرست پروژه‌ها", "Copy project list")}
+                </Button>
+                <p>
+                  {t(
+                    "به حساب مقصد سوییچ کن و برنامهٔ اصلی Codex را با ⌘Q ببند. بزرگ‌ترین فهرست ذخیره‌شدهٔ قبلی همراه سنجاق‌ها و رنگ‌ها به حساب مقصد کپی می‌شود.",
+                    "Switch to the destination account and quit the original Codex app with ⌘Q. Copies the largest saved project list with its pins and colors.",
+                  )}
+                </p>
+                {projectCopy && (
+                  <p role="status">
+                    {t(
+                      `${num(projectCopy.copied)} پروژه اضافه شد. ${num(projectCopy.missing)} پوشه در دسترس نبود. برای دیدن فهرست، Codex را باز کن.`,
+                      `${num(projectCopy.copied)} projects added. ${num(projectCopy.missing)} folders unavailable. Open Codex to see the list.`,
+                    )}
+                  </p>
+                )}
+              </>
             )}
             <p>{capabilityMessage(caps, fa)}</p>
             <p>

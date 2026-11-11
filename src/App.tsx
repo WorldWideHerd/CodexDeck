@@ -330,6 +330,9 @@ export default function App() {
   );
   if (new URLSearchParams(window.location.search).get("view") === "menubar")
     return <MenubarPanel state={state} busy={busy} now={now} run={run} />;
+  const copyingProjects =
+    desktopPhase === "authorizingProjectCopy" ||
+    desktopPhase === "copyingProjects";
   return (
     <div className="app-shell">
       <Dialog open={desktopPhase !== null}>
@@ -341,13 +344,20 @@ export default function App() {
         >
           <DialogHeader>
             <DialogTitle>
-              {t("تغییر حساب Codex", "Changing Codex account")}
+              {copyingProjects
+                ? t("کپی فهرست پروژه‌ها", "Copying project list")
+                : t("تغییر حساب Codex", "Changing Codex account")}
             </DialogTitle>
             <DialogDescription>
-              {t(
-                "Codex بسته می‌شود و با حساب تأییدشده دوباره باز می‌شود. اگر درخواست تأیید مک باز است، آن را تأیید یا لغو کن.",
-                "Codex will close and reopen using the confirmed account. Approve or cancel any macOS authentication prompt.",
-              )}
+              {copyingProjects
+                ? t(
+                    "اگر درخواست تأیید مک باز است، آن را تأیید یا لغو کن. پس از اتمام می‌توانی Codex را باز کنی.",
+                    "Approve or cancel the macOS authentication prompt. You can reopen Codex when the copy finishes.",
+                  )
+                : t(
+                    "Codex بسته می‌شود و با حساب تأییدشده دوباره باز می‌شود. اگر درخواست تأیید مک باز است، آن را تأیید یا لغو کن.",
+                    "Codex will close and reopen using the confirmed account. Approve or cancel any macOS authentication prompt.",
+                  )}
             </DialogDescription>
           </DialogHeader>
           <p role="status" aria-live="polite">

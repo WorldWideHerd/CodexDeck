@@ -102,6 +102,8 @@ final class MainAccountSwitch {
         case .verifying: name = "verifying"
         case .opening: name = "opening"
         case .recovering: name = "recovering"
+        case .authorizingProjectCopy: name = "authorizingProjectCopy"
+        case .copyingProjects: name = "copyingProjects"
         }
         emit(["phase": name], key: key, callback: callback)
     }
@@ -143,6 +145,7 @@ final class MainAccountSwitch {
         }
     }
     private func errorCode(_ error: Error) -> String {
+        if let error = error as? DesktopProjectCopyError { return error.rawValue }
         if let error = error as? DesktopAuthorizationError {
             switch error { case .cancelled: return "desktopCancelled"; case .unavailable: return "desktopAuthorization"; case .failed: return "desktopAuthorization" }
         }
@@ -167,7 +170,7 @@ final class MainAccountSwitch {
     func run(_ data: Data, key: UInt64, callback: @escaping SwitchCallback) async {
         guard !busy else { emit(["done": true, "error": "desktopBusy"], key: key, callback: callback); return }
         guard data.count <= 1024 * 1024, let request = try? JSONDecoder().decode(SwitchRequest.self, from: data),
-              ["switch", "restore"].contains(request.action), mainSwitchReady() == 1 else {
+              ["switch", "restore", "copyProjects"].contains(request.action), mainSwitchReady() == 1 else {
             emit(["done": true, "error": "desktopBroker"], key: key, callback: callback); return
         }
         busy = true
@@ -182,10 +185,17 @@ final class MainAccountSwitch {
         do {
             guard AppCodeIdentity.isCurrent() else { throw DesktopSwitchError.changed }
             let (runtime, executable) = try verifiedRuntime()
-            stage(.authorizing, key: key, callback: callback)
+            stage(request.action == "copyProjects" ? .authorizingProjectCopy : .authorizing,
+                  key: key, callback: callback)
             let selected = request.profiles.first(where: { $0.id == request.selectedID })
             if request.action == "switch" && selected == nil { throw DesktopSwitchError.invalidAccount }
-            try await SystemDesktopAuthorizer().authorize(request.action == "switch" ? .switchAccount(selected!.label) : .restoreAccount)
+            let intent: DesktopAuthorizationIntent
+            switch request.action {
+            case "switch": intent = .switchAccount(selected!.label)
+            case "copyProjects": intent = .copyProjects
+            default: intent = .restoreAccount
+            }
+            try await SystemDesktopAuthorizer().authorize(intent)
             guard AppCodeIdentity.isCurrent() else { throw DesktopSwitchError.changed }
             // Kernel lock also serializes a second signed client/process of this integration.
             let lockPath = FileManager.default.temporaryDirectory.appendingPathComponent("codexdeck-main-switch-\(getuid()).lock").path
@@ -194,6 +204,12 @@ final class MainAccountSwitch {
             defer { flock(fd, LOCK_UN); close(fd) }
             guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
                 emit(["done": true, "error": "desktopBusy"], key: key, callback: callback); return
+            }
+            if request.action == "copyProjects" {
+                stage(.copyingProjects, key: key, callback: callback)
+                let report = try await DesktopProjectCopy.copy(runtime: runtime, executable: executable)
+                emit(["done": true, "projectReport": report], key: key, callback: callback)
+                return
             }
             stage(.checkingApp, key: key, callback: callback)
             let storage = DesktopCredentialStore(home: OriginalDesktopRuntime.home)
@@ -237,7 +253,9 @@ final class MainAccountSwitch {
             verifier?.stop(); verifier = nil
             emit(["done": true, "activeId": activeID?.uuidString.lowercased() as Any? ?? NSNull()], key: key, callback: callback)
         } catch {
-            emit(["done": true, "error": errorCode(error)], key: key, callback: callback)
+            let code = errorCode(error)
+            emit(["done": true, "error": request.action == "copyProjects" && code == "desktopVerification"
+                  ? "projectsCopyFailed" : code], key: key, callback: callback)
         }
     }
 }

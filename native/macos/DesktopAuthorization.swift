@@ -2,7 +2,7 @@ import Foundation
 import LocalAuthentication
 
 enum DesktopAuthorizationIntent: Equatable {
-    case switchAccount(String), restoreAccount
+    case switchAccount(String), restoreAccount, copyProjects
 
     var reason: String {
         switch self {
@@ -13,6 +13,9 @@ enum DesktopAuthorizationIntent: Equatable {
         case .restoreAccount:
             return L("حساب قبلی ChatGPT بازگردانی می‌شود و برنامه دوباره باز می‌شود.",
                      "Restore ChatGPT’s previous account and reopen the app.")
+        case .copyProjects:
+            return L("فهرست پروژه‌های محلی در حساب فعلی Codex کپی می‌شود.",
+                     "Copy the local project list into the current Codex account.")
         }
     }
 }

@@ -1807,17 +1807,28 @@ body {
 
 /* Card scan lines and a compact, shared action area. */
 .accounts.cards .account-status-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-height: 0;
   margin-bottom: 14px;
 }
 .accounts.cards .account-tags .status {
   display: inline-flex;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   font-size: 11px;
+  white-space: nowrap;
+}
+.accounts.cards .account-tags {
+  flex-shrink: 0;
 }
 .accounts.cards .card-cache-note {
+  min-width: 0;
   margin: 0;
   line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .accounts.cards .account-quotas .quota {
   padding: 12px;

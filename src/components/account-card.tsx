@@ -117,6 +117,10 @@ export function AccountCard({
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const quickOpener = useRef<HTMLButtonElement | null>(null);
   const stale = isStale(a, settings.refreshMinutes, now);
+  const staleQuotaNote = t(
+    "اطلاعات سهمیه قدیمی است.",
+    "Quota data is outdated.",
+  );
   const detailBuckets = buckets(a.snapshot)
     .map(
       ([id, bucket], index) =>
@@ -483,8 +487,12 @@ export function AccountCard({
                   </span>
                 </div>
                 {settings.layout === "cards" && stale && (
-                  <p className="card-cache-note" role="status">
-                    {t("اطلاعات سهمیه قدیمی است.", "Quota data is outdated.")}
+                  <p
+                    className="card-cache-note"
+                    role="status"
+                    title={staleQuotaNote}
+                  >
+                    {staleQuotaNote}
                   </p>
                 )}
               </div>
@@ -646,7 +654,7 @@ export function AccountCard({
                   </button>
                 </AccountInfoPopover>
               </div>
-              {a.error && (
+              {a.error && errorCode(a.error) !== "loginExpired" && (
                 <p className="account-error" role="alert">
                   {presentError(a.error, fa)}
                 </p>

@@ -349,11 +349,15 @@ describe("card data freshness", () => {
   });
 
   it("keeps sign-in status distinct from outdated quota data", async () => {
-    await renderCard(undefined, false, { status: "needsLogin" });
+    await renderCard(undefined, false, {
+      status: "needsLogin",
+      error: "loginExpired",
+    });
     expect(host.querySelector(".account-tags .status")?.textContent).toBe(
       "Sign in required",
     );
     expect(host.querySelector(".card-cache-note")).not.toBeNull();
+    expect(host.querySelector(".account-error")).toBeNull();
     await renderCard(undefined, false, { snapshot: null, updatedAt: null });
     expect(host.querySelector(".card-cache-note")).toBeNull();
     expect(host.querySelector(".no-usage")).not.toBeNull();

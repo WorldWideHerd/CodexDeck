@@ -6,6 +6,7 @@ final class RPCClient {
     private let executable: URL
     private let home: URL
     private let credentialsStore: String?
+    private let experimentalAPI: Bool
     private var process: Process?
     private var input: Pipe?
     private var output: Pipe?
@@ -23,10 +24,11 @@ final class RPCClient {
             && credentialsStore == expectedStore
     }
 
-    init(executable: URL, home: URL, credentialsStore: String? = "file") {
+    init(executable: URL, home: URL, credentialsStore: String? = "file", experimentalAPI: Bool = false) {
         self.executable = executable
         self.home = home
         self.credentialsStore = credentialsStore
+        self.experimentalAPI = experimentalAPI
     }
 
     func start() async throws {
@@ -71,9 +73,11 @@ final class RPCClient {
         process = worker
         do {
             try worker.run()
-            _ = try await request("initialize", params: [
+            var params: [String: Any] = [
                 "clientInfo": ["name": "codex_usage_widget", "title": "CodexDeck", "version": "1.6.7"]
-            ])
+            ]
+            if experimentalAPI { params["capabilities"] = ["experimentalApi": true] }
+            _ = try await request("initialize", params: params)
             try write(["method": "initialized"])
         } catch {
             stop()

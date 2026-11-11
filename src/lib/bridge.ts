@@ -83,6 +83,8 @@ export const bridge = {
   choose: () => call<AppState>("choose_codex_executable"),
   switch: (id: string) => call<AppState>("switch_desktop_account", { id }),
   restore: () => call<AppState>("restore_desktop_account"),
+  copyProjects: () =>
+    call<{ copied: number; missing: number }>("copy_desktop_projects"),
   async subscribe(
     state: (s: AppState) => void,
     login: (l: LoginState) => void,
