@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — preview
+
+- Add Windows original-account switching and restoration for the official Codex MSIX app, with DPAPI-encrypted recovery backups and storage/workspace validation.
+- Sync refreshed original credentials to matching cards and provide Windows-specific close-first guidance.
+- Improve macOS shutdown inspection for exited processes and recycled process IDs.
+- Add authorized copying of macOS local project lists, pins and colors.
+- Improve Windows notification status and clarify reporting settings.
+
 ## 0.1.1 — preview
 
 - Make the isolated local signing keychain searchable while codesign constructs its certificate chain, then restore the previous search list on success and failure.

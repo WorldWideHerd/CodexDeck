@@ -1,6 +1,6 @@
 [package]
 name = "codexdeck"
-version = "0.1.1"
+version = "0.1.2"
 description = "Isolated Codex usage dashboard"
 license = "MIT"
 edition = "2021"
